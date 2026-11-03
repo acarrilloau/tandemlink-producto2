@@ -1,13 +1,16 @@
 /* ==========================================================================
    DOCUMENTACIÓN IA GENERATIVA
-   - IA utilizada: Gemini
-   - Prompt 1: "Crea una función para limpiar los elementos dinámicos previos del menú de navegación."
-   - Prompt 2: "Comprueba si existe sesión en sessionStorage y parsea los datos para inyectar el correo del usuario."
-   - Prompt 3: "Añade un botón interactivo de cerrar sesión con un event listener para limpiar el almacenamiento."
-   - Prompt 4: "Implementa una función auxiliar para mostrar el enlace de inicio de sesión si no hay usuario autenticado."
+   - IA utilizada: ChatGPT
+   - Prompt 1: "Adapta navegacion.js para consultar la sesión desde localStorage
+     mediante las funciones de almacenaje.js y permitir cerrar sesión"
    ========================================================================== */
 
-
+// Importamos las funciones de almacenamiento.
+import {
+    obtenerUsuarioConectado,
+    obtenerUsuarioPorEmail,
+    cerrarSesion
+} from "./almacenaje.js";
 
 const menuPrincipal = document.querySelector("#menuPrincipal .navbar-nav");
 
@@ -37,67 +40,67 @@ export function actualizarNavegacion() {
         elementoLoginAnterior.remove();
     }
 
-    // Recuperamos los datos de la sesión.
-    const datosUsuario = sessionStorage.getItem("usuarioConectado");
+    // Recuperamos el correo del usuario conectado.
+    const emailUsuario = obtenerUsuarioConectado();
+    const usuario = emailUsuario
+        ? obtenerUsuarioPorEmail(emailUsuario)
+        : null;
 
-    if (datosUsuario) {
-        try {
-            const usuario = JSON.parse(datosUsuario);
+    if (usuario) {
+        // Eliminamos el enlace fijo de inicio de sesión del HTML.
+        const enlacesLogin = menuPrincipal.querySelectorAll(
+            'a[href="login.html"]'
+        );
 
-            // Eliminamos el enlace fijo de inicio de sesión del HTML.
-            const enlacesLogin = menuPrincipal.querySelectorAll(
-                'a[href="login.html"]'
-            );
+        enlacesLogin.forEach(function (enlace) {
+            enlace.closest(".nav-item")?.remove();
+        });
 
-            enlacesLogin.forEach(function (enlace) {
-                enlace.closest(".nav-item")?.remove();
-            });
+        // Mostramos el correo del usuario conectado.
+        const elementoUsuario = document.createElement("li");
+        elementoUsuario.id = "usuarioConectadoMenu";
+        elementoUsuario.className = "nav-item";
 
-            // Mostramos el correo del usuario conectado.
-            const elementoUsuario = document.createElement("li");
-            elementoUsuario.id = "usuarioConectadoMenu";
-            elementoUsuario.className = "nav-item";
+        const correoUsuario = document.createElement("span");
+        correoUsuario.className = "nav-link text-white";
+        correoUsuario.textContent = usuario.email;
 
-            const correoUsuario = document.createElement("span");
-            correoUsuario.className = "nav-link text-white";
-            correoUsuario.textContent = usuario.email;
+        elementoUsuario.appendChild(correoUsuario);
+        menuPrincipal.appendChild(elementoUsuario);
 
-            elementoUsuario.appendChild(correoUsuario);
-            menuPrincipal.appendChild(elementoUsuario);
+        // Añadimos la opción de cerrar sesión.
+        const elementoCerrarSesion = document.createElement("li");
+        elementoCerrarSesion.id = "cerrarSesionMenu";
+        elementoCerrarSesion.className = "nav-item";
 
-            // Añadimos la opción de cerrar sesión.
-            const elementoCerrarSesion = document.createElement("li");
-            elementoCerrarSesion.id = "cerrarSesionMenu";
-            elementoCerrarSesion.className = "nav-item";
+        const botonCerrarSesion = document.createElement("button");
+        botonCerrarSesion.type = "button";
+        botonCerrarSesion.className =
+            "nav-link btn btn-link text-white";
+        botonCerrarSesion.textContent = "Cerrar sesión";
 
-            const botonCerrarSesion = document.createElement("button");
-            botonCerrarSesion.type = "button";
-            botonCerrarSesion.className =
-                "nav-link btn btn-link text-white";
-            botonCerrarSesion.textContent = "Cerrar sesión";
+        botonCerrarSesion.addEventListener("click", function () {
+            // Eliminamos la sesión.
+            cerrarSesion();
 
-            botonCerrarSesion.addEventListener("click", function () {
-                // Eliminamos la sesión.
-                sessionStorage.removeItem("usuarioConectado");
+            // Actualizamos el menú.
+            actualizarNavegacion();
 
-                // Actualizamos el menú.
-                actualizarNavegacion();
+            // Si estamos en el login, limpiamos el mensaje anterior.
+            if (window.location.pathname.endsWith("/login.html")) {
+                window.location.reload();
+            }
+        });
 
-                // Si estamos en el login, limpiamos el mensaje anterior.
-                if (window.location.pathname.endsWith("/login.html")) {
-                    window.location.reload();
-                }
-            });
+        elementoCerrarSesion.appendChild(botonCerrarSesion);
+        menuPrincipal.appendChild(elementoCerrarSesion);
 
-            elementoCerrarSesion.appendChild(botonCerrarSesion);
-            menuPrincipal.appendChild(elementoCerrarSesion);
-
-        } catch (error) {
-            // Si los datos de sesión no son válidos, los eliminamos.
-            sessionStorage.removeItem("usuarioConectado");
-            mostrarEnlaceLogin();
-        }
     } else {
+        // Si no existe el usuario, eliminamos una posible sesión inválida.
+        if (emailUsuario) {
+            cerrarSesion();
+        }
+
         // No hay sesión: mostramos un único enlace de inicio de sesión.
         mostrarEnlaceLogin();
     }
