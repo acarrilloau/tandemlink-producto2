@@ -1,14 +1,20 @@
 /* ==========================================================================
    DOCUMENTACIÓN IA GENERATIVA
-   - IA utilizada: Gemini
-   - Prompt 1: "Crea una función para renderizar dinámicamente los usuarios en una tabla HTML con botones de eliminación."
-   - Prompt 2: "Añade un event listener 'submit' para validar correos duplicados y registrar nuevos usuarios con un ID autoincremental."
-   - Prompt 3: "Implementa la lógica para eliminar un usuario de forma segura comprobando su índice en el array."
-   - Prompt 4: "Comprueba si el usuario eliminado tiene una sesión activa en sessionStorage para cerrarla y actualizar la navegación."
+   - IA utilizada: ChatGPT
+   - Prompt 1: "Adapta usuarios.js para gestionar el registro, la visualización y la eliminación de usuarios mediante las funciones de almacenaje.js y localStorage, incluyendo el cierre de sesión si se elimina el usuario conectado."
+   - Prompt 2: ""
    ========================================================================== */
    
-// Importamos los datos de usuarios y la función para actualizar la navegación.
-import { usuarios } from "./datos.js";
+// Importamos las funciones de almacenamiento y navegación.
+import {
+    inicializarAlmacenamiento,
+    obtenerUsuarios,
+    guardarUsuario,
+    eliminarUsuario,
+    obtenerUsuarioConectado,
+    cerrarSesion
+} from "./almacenaje.js";
+
 import { actualizarNavegacion } from "./navegacion.js";
 
 // Elementos del formulario y de la tabla.
@@ -20,8 +26,10 @@ const mensaje = document.getElementById("mensajeUsuario");
 const listaUsuarios = document.getElementById("listaUsuarios");
 const mensajeListaVacia = document.getElementById("mensajeListaVacia");
 
-// Mostramos los usuarios en la tabla.
+// Mostramos los usuarios guardados.
 function mostrarUsuarios() {
+    const usuarios = obtenerUsuarios();
+
     listaUsuarios.innerHTML = "";
 
     usuarios.forEach(function (usuario) {
@@ -42,7 +50,6 @@ function mostrarUsuarios() {
             </td>
         `;
 
-        // Insertamos los textos como texto, no como HTML.
         fila.children[1].textContent = usuario.nombre;
         fila.children[2].textContent = usuario.email;
 
@@ -68,6 +75,8 @@ formulario.addEventListener("submit", function (evento) {
     const email = campoEmail.value.trim();
     const password = campoPassword.value;
 
+    const usuarios = obtenerUsuarios();
+
     // Comprobamos que el correo no esté registrado.
     const correoExiste = usuarios.some(function (usuario) {
         return usuario.email.toLowerCase() === email.toLowerCase();
@@ -85,8 +94,8 @@ formulario.addEventListener("submit", function (evento) {
         })) + 1
         : 1;
 
-    // Añadimos el nuevo usuario al array.
-    usuarios.push({
+    // Guardamos el nuevo usuario en localStorage.
+    guardarUsuario({
         id: nuevoId,
         nombre: nombre,
         email: email,
@@ -100,7 +109,7 @@ formulario.addEventListener("submit", function (evento) {
 });
 
 // Gestionamos los clics en los botones de eliminar.
-listaUsuarios.addEventListener("click", function (evento) {
+listaUsuarios.addEventListener("click", async function (evento) {
     const boton = evento.target.closest("button[data-id]");
 
     if (!boton) {
@@ -109,11 +118,11 @@ listaUsuarios.addEventListener("click", function (evento) {
 
     const id = Number(boton.dataset.id);
 
-    const indice = usuarios.findIndex(function (usuario) {
+    const usuario = obtenerUsuarios().find(function (usuario) {
         return usuario.id === id;
     });
 
-    if (indice === -1) {
+    if (!usuario) {
         return;
     }
 
@@ -126,30 +135,31 @@ listaUsuarios.addEventListener("click", function (evento) {
     }
 
     // Comprobamos si el usuario eliminado tiene la sesión activa.
-    const datosSesion = sessionStorage.getItem("usuarioConectado");
+    const emailConectado = obtenerUsuarioConectado();
 
-    if (datosSesion) {
-        try {
-            const usuarioConectado = JSON.parse(datosSesion);
-
-            if (usuarioConectado.id === id) {
-                sessionStorage.removeItem("usuarioConectado");
-            }
-        } catch (error) {
-            // Si la sesión no es válida, la eliminamos.
-            sessionStorage.removeItem("usuarioConectado");
-        }
+    if (emailConectado &&
+        emailConectado.toLowerCase() === usuario.email.toLowerCase()) {
+        cerrarSesion();
     }
 
-    // Eliminamos al usuario del array.
-    usuarios.splice(indice, 1);
+    // Eliminamos el usuario de localStorage.
+    eliminarUsuario(id);
 
     mostrarUsuarios();
     mostrarMensaje("Usuario eliminado correctamente.", "success");
 
-    // Actualizamos el menú después de la eliminación.
     actualizarNavegacion();
 });
 
-// Cargamos los usuarios iniciales.
-mostrarUsuarios();
+// Inicializamos el almacenamiento antes de mostrar los usuarios.
+async function iniciarPagina() {
+    try {
+        await inicializarAlmacenamiento();
+        mostrarUsuarios();
+    } catch (error) {
+        console.error("Error al inicializar el almacenamiento:", error);
+        mostrarMensaje("No se han podido cargar los usuarios.", "danger");
+    }
+}
+
+iniciarPagina();
