@@ -1,0 +1,158 @@
+<!-- ==========================================================================
+   DOCUMENTACIÓN IA GENERATIVA
+   - IA utilizada: Gemini
+   - Prompt 1: "Crea la estructura base HTML5 con Bootstrap 5 y la barra de navegación responsive para la página de login."
+   - Prompt 2: "Diseña un contenedor centrado con una tarjeta (card) que incluya un título y un subtítulo de bienvenida."
+   - Prompt 3: "Construye el formulario de acceso con campos de correo y contraseña que incluyan atributos de accesibilidad y validación."
+   - Prompt 4: "Añade un contenedor de alertas y los scripts modulares de JavaScript para gestionar la autenticación y la navegación."
+   ========================================================================== -->
+<!doctype html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Iniciar sesión | TandemLink</title>
+
+    <!-- Bootstrap 5 -->
+    <link
+        href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"
+        rel="stylesheet"
+    >
+
+    <!-- Estilos propios -->
+    <link rel="stylesheet" href="css/estilos.css">
+</head>
+
+<body>
+
+    <!-- Navegación principal -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+        <div class="container">
+            <a class="navbar-brand fw-bold" href="index.html">
+                TandemLink
+            </a>
+
+            <button
+                class="navbar-toggler"
+                type="button"
+                data-bs-toggle="collapse"
+                data-bs-target="#menuPrincipal"
+                aria-controls="menuPrincipal"
+                aria-expanded="false"
+                aria-label="Mostrar navegación"
+            >
+                <span class="navbar-toggler-icon"></span>
+            </button>
+
+            <div class="collapse navbar-collapse" id="menuPrincipal">
+                <ul class="navbar-nav ms-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" href="index.html">Inicio</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link active" href="login.html">Iniciar sesión</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="nueva-oferta.html">Intercambios</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="usuarios.html">Usuarios</a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Formulario de inicio de sesión -->
+    <main class="container py-5">
+
+        <div class="row justify-content-center">
+            <div class="col-12 col-md-8 col-lg-5">
+
+                <div class="card shadow-sm border-0">
+                    <div class="card-body p-4 p-md-5">
+
+                        <div class="text-center mb-4">
+                            <h1 class="h3 fw-bold">¡Bienvenido de nuevo!</h1>
+
+                            <p class="text-secondary">
+                                Inicia sesión para acceder a TandemLink.
+                            </p>
+                        </div>
+
+                        <form id="formularioLogin">
+
+                            <div class="mb-3">
+                                <label for="email" class="form-label">
+                                    Correo electrónico
+                                </label>
+
+                                <input
+                                    type="email"
+                                    class="form-control"
+                                    id="email"
+                                    name="email"
+                                    placeholder="nombre@ejemplo.com"
+                                    autocomplete="username"
+                                    required
+                                >
+                            </div>
+
+                            <div class="mb-3">
+                                <label for="password" class="form-label">
+                                    Contraseña
+                                </label>
+
+                                <input
+                                    type="password"
+                                    class="form-control"
+                                    id="password"
+                                    name="password"
+                                    placeholder="Introduce tu contraseña"
+                                    autocomplete="current-password"
+                                    required
+                                >
+                            </div>
+
+                            <div id="mensajeLogin"
+                                 class="mb-3"
+                                 role="alert"
+                                 aria-live="polite">
+                            </div>
+
+                            <button
+                                type="submit"
+                                class="btn btn-primary w-100"
+                            >
+                                Iniciar sesión
+                            </button>
+
+                        </form>
+
+                        <div class="text-center mt-4">
+                            <p class="small text-secondary mb-0">
+                                ¿Todavía no tienes una cuenta?
+                                <a href="usuarios.html">Regístrate</a>
+                            </p>
+                        </div>
+
+                    </div>
+                </div>
+
+            </div>
+        </div>
+
+    </main>
+
+    <!-- Bootstrap JavaScript -->
+    <script
+        src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"
+    ></script>
+
+    <!-- JavaScript del login -->
+    <script type="module" src="js/login.js"></script>
+    <script type="module" src="js/navegacion.js"></script>
+    
+</body>
+</html>

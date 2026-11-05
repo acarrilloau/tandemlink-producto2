@@ -1,0 +1,216 @@
+<!-- ==========================================================================
+   DOCUMENTACIÓN IA GENERATIVA
+   - IA utilizada: Gemini
+   - Prompt 1: "Crea la estructura HTML5 con Bootstrap 5 y la barra de navegación para la vista de intercambios."
+   - Prompt 2: "Diseña un formulario de alta con campos selectores para tipo, usuario, modalidad e inputs de idiomas."
+   - Prompt 3: "Añade una sección contenedora de tarjetas con un párrafo dinámico para cuando el listado esté vacío."
+   - Prompt 4: "Configura la importación de los scripts modulares de JavaScript para intercambios y navegación."
+   ========================================================================== -->
+<!doctype html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Gestión de intercambios | TandemLink</title>
+
+    <!-- Bootstrap 5 -->
+    <link
+        href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"
+        rel="stylesheet"
+    >
+
+    <!-- Estilos propios -->
+    <link rel="stylesheet" href="css/estilos.css">
+</head>
+
+<body>
+
+    <!-- Navegación principal -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+        <div class="container">
+            <a class="navbar-brand fw-bold" href="index.html">
+                TandemLink
+            </a>
+
+            <button
+                class="navbar-toggler"
+                type="button"
+                data-bs-toggle="collapse"
+                data-bs-target="#menuPrincipal"
+                aria-controls="menuPrincipal"
+                aria-expanded="false"
+                aria-label="Mostrar navegación"
+            >
+                <span class="navbar-toggler-icon"></span>
+            </button>
+
+            <div class="collapse navbar-collapse" id="menuPrincipal">
+                <ul class="navbar-nav ms-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" href="index.html">Inicio</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="login.html">Iniciar sesión</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link active" href="nueva-oferta.html">
+                            Intercambios
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="usuarios.html">Usuarios</a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <main class="container py-5">
+
+        <!-- Encabezado -->
+        <header class="mb-4">
+            <h1 class="fw-bold">Gestión de intercambios</h1>
+            <p class="text-secondary">
+                Publica ofertas o peticiones y consulta los intercambios disponibles.
+            </p>
+        </header>
+
+        <!-- Formulario de alta -->
+        <section class="card shadow-sm border-0 mb-5">
+            <div class="card-body p-4">
+                <h2 class="h4 mb-4">Crear un intercambio</h2>
+
+                <form id="formularioIntercambio">
+
+                    <div class="row g-3">
+
+                        <div class="col-12 col-md-6">
+                            <label for="tipoIntercambio" class="form-label">
+                                Tipo de intercambio
+                            </label>
+
+                            <select
+                                id="tipoIntercambio"
+                                class="form-select"
+                                required
+                            >
+                                <option value="">Selecciona una opción</option>
+                                <option value="oferta">Oferta</option>
+                                <option value="petición">Petición</option>
+                            </select>
+                        </div>
+
+                        <div class="col-12 col-md-6">
+                            <label for="usuarioIntercambio" class="form-label">
+                                Usuario
+                            </label>
+
+                            <select
+                                id="usuarioIntercambio"
+                                class="form-select"
+                                required
+                            >
+                                <option value="">Selecciona un usuario</option>
+                            </select>
+                        </div>
+
+                        <div class="col-12 col-md-6">
+                            <label for="idiomaOfrecido" class="form-label">
+                                Idioma que ofrece
+                            </label>
+
+                            <input
+                                type="text"
+                                id="idiomaOfrecido"
+                                class="form-control"
+                                placeholder="Ej.: Español"
+                                required
+                            >
+                        </div>
+
+                        <div class="col-12 col-md-6">
+                            <label for="idiomaBuscado" class="form-label">
+                                Idioma que busca
+                            </label>
+
+                            <input
+                                type="text"
+                                id="idiomaBuscado"
+                                class="form-control"
+                                placeholder="Ej.: Inglés"
+                                required
+                            >
+                        </div>
+
+                        <div class="col-12">
+                            <label for="modalidadIntercambio" class="form-label">
+                                Modalidad
+                            </label>
+
+                            <select
+                                id="modalidadIntercambio"
+                                class="form-select"
+                                required
+                            >
+                                <option value="">Selecciona una modalidad</option>
+                                <option value="Online">Online</option>
+                                <option value="Presencial">Presencial</option>
+                            </select>
+                        </div>
+
+                        <div class="col-12">
+                            <label for="descripcionIntercambio" class="form-label">
+                                Descripción
+                            </label>
+
+                            <textarea
+                                id="descripcionIntercambio"
+                                class="form-control"
+                                rows="3"
+                                placeholder="Explica qué tipo de práctica buscas..."
+                                required
+                            ></textarea>
+                        </div>
+
+                    </div>
+
+                    <div
+                        id="mensajeIntercambio"
+                        class="mt-3"
+                        role="alert"
+                        aria-live="polite"
+                    ></div>
+
+                    <button type="submit" class="btn btn-primary mt-3">
+                        Publicar intercambio
+                    </button>
+
+                </form>
+            </div>
+        </section>
+
+        <!-- Listado de intercambios -->
+        <section>
+            <h2 class="h4 mb-3">Intercambios publicados</h2>
+
+            <div id="listaIntercambios" class="row g-4">
+                <!-- JavaScript insertará aquí las tarjetas -->
+            </div>
+
+            <p id="mensajeListaVacia" class="text-secondary"></p>
+        </section>
+
+    </main>
+
+    <!-- Bootstrap JavaScript -->
+    <script
+        src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"
+    ></script>
+
+    <!-- JavaScript de gestión de intercambios -->
+    <script type="module" src="js/intercambios.js"></script>
+    <script type="module" src="js/navegacion.js"></script>
+
+</body>
+</html>
