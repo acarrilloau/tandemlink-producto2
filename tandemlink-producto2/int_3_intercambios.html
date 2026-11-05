@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Generador de Tarjetas - TandemLink</title>
+    <!-- CSS de Bootstrap -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body class="bg-light">
+    
+    <div class="container my-5">
+        <h1 class="mb-4">Generador de Insignias (Canvas API)</h1>
+
+        <!-- Formulario de selección -->
+        <div class="card p-4 shadow-sm mb-4">
+            <div class="mb-3">
+                <label for="selectIntercambioCanvas" class="form-label">Selecciona un intercambio:</label>
+                <select id="selectIntercambioCanvas" class="form-select">
+                    <!-- Se rellenará dinámicamente desde JavaScript -->
+                </select>
+            </div>
+            <button id="btnGenerarCanvas" class="btn btn-primary">Generar Tarjeta Gráfica</button>
+        </div>
+
+        <!-- Contenedor del Canvas y botón de descarga -->
+        <div class="text-center">
+            <canvas id="miCanvas" class="border shadow-sm mb-3 bg-white"></canvas>
+            <div>
+                <a id="btnDescargarCanvas" class="btn btn-success" style="display: none;">Descargar Imagen PNG</a>
+            </div>
+        </div>
+
+        <!-- Mensajes de alerta -->
+        <div id="mensajeCanvas"></div>
+    </div>
+
+    <!-- Script principal como módulo -->
+    <script type="module" src="./js/int_3_intercambios.js"></script>
+</body>
+</html>
