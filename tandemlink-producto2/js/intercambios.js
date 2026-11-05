@@ -1,4 +1,12 @@
+/* ==========================================================================
+   DOCUMENTACIÓN IA GENERATIVA
+   - IA utilizada: Gemini
+   - Prompt: "Adapta intercambios.js para gestionar la carga, el registro y la eliminación de intercambios mediante IndexedDB y las funciones asíncronas de almacenaje.js."
+   ========================================================================== */
+
 import { usuarios } from "./datos.js";
+
+// CAMBIO: Importamos las funciones asíncronas de IndexedDB desde almacenaje.js en lugar de depender únicamente del array estático en memoria.
 import {
     inicializarAlmacenamiento,
     obtenerIntercambios,
@@ -32,9 +40,10 @@ function cargarUsuarios() {
     });
 }
 
+// CAMBIO: La función pasa a ser async para consultar IndexedDB de forma asíncrona mediante await.
 async function mostrarIntercambios() {
     try {
-        const intercambios = await obtenerIntercambios();
+        const intercambios = await obtenerIntercambios(); // Obtenemos los registros directamente desde IndexedDB
         listaIntercambios.innerHTML = "";
 
         intercambios.forEach(function (intercambio) {
@@ -110,6 +119,7 @@ async function mostrarIntercambios() {
     }
 }
 
+// CAMBIO: El evento submit es async para permitir el uso de await al guardar en la base de datos.
 formulario.addEventListener("submit", async function (evento) {
     evento.preventDefault();
 
@@ -146,6 +156,7 @@ formulario.addEventListener("submit", async function (evento) {
             fechaCreacion: new Date().toLocaleDateString("en-CA")
         };
 
+        // CAMBIO: Guardamos el registro de forma persistente en IndexedDB mediante await.
         await guardarIntercambio(nuevoIntercambio);
         await mostrarIntercambios();
         formulario.reset();
@@ -156,6 +167,7 @@ formulario.addEventListener("submit", async function (evento) {
     }
 });
 
+// CAMBIO: El manejador del clic de eliminación es async para usar la función de borrado de IndexedDB.
 listaIntercambios.addEventListener("click", async function (evento) {
     const boton = evento.target.closest("button[data-id]");
     if (!boton) return;
@@ -165,6 +177,7 @@ listaIntercambios.addEventListener("click", async function (evento) {
     if (!confirmar) return;
 
     try {
+        // CAMBIO: Eliminamos el elemento de forma permanente usando la función asíncrona de IndexedDB.
         await eliminarIntercambio(id);
         await mostrarIntercambios();
         mostrarMensaje("Intercambio eliminado correctamente.", "success");
@@ -174,6 +187,7 @@ listaIntercambios.addEventListener("click", async function (evento) {
     }
 });
 
+// CAMBIO: Función de inicialización asíncrona para asegurar la apertura de la base de datos antes de renderizar la vista.
 async function iniciarPagina() {
     try {
         await inicializarAlmacenamiento();
