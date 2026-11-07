@@ -1,8 +1,10 @@
+
 /* ==========================================================================
    DOCUMENTACIÓN IA GENERATIVA
    - IA utilizada: ChatGPT
-   - Prompt 1: "Adapta navegacion.js para consultar la sesión desde localStorage
-     mediante las funciones de almacenaje.js y permitir cerrar sesión"
+   - Prompt 1: "Adapta navegacion.js para utilizar DOMContentLoaded,
+     mostrar el nombre del usuario conectado o '-no login-' y mantener
+     la funcionalidad de inicio y cierre de sesión mediante almacenaje.js"
    ========================================================================== */
 
 // Importamos las funciones de almacenamiento.
@@ -12,33 +14,25 @@ import {
     cerrarSesion
 } from "./almacenaje.js";
 
+// Buscamos el menú principal.
 const menuPrincipal = document.querySelector("#menuPrincipal .navbar-nav");
 
-export function actualizarNavegacion() {
+export function mostrarUsuarioActivo() {
     // Comprobamos que exista el menú principal.
     if (!menuPrincipal) {
         return;
     }
 
     // Eliminamos los elementos dinámicos anteriores.
-    const elementoAnterior = document.getElementById("usuarioConectadoMenu");
-    if (elementoAnterior) {
-        elementoAnterior.remove();
-    }
+    const idsElementos = [
+        "usuarioConectadoMenu",
+        "cerrarSesionMenu",
+        "iniciarSesionMenu"
+    ];
 
-    const elementoCerrarSesionAnterior =
-        document.getElementById("cerrarSesionMenu");
-
-    if (elementoCerrarSesionAnterior) {
-        elementoCerrarSesionAnterior.remove();
-    }
-
-    const elementoLoginAnterior =
-        document.getElementById("iniciarSesionMenu");
-
-    if (elementoLoginAnterior) {
-        elementoLoginAnterior.remove();
-    }
+    idsElementos.forEach(function (id) {
+        document.getElementById(id)?.remove();
+    });
 
     // Recuperamos el correo del usuario conectado.
     const emailUsuario = obtenerUsuarioConectado();
@@ -46,7 +40,18 @@ export function actualizarNavegacion() {
         ? obtenerUsuarioPorEmail(emailUsuario)
         : null;
 
+    // Creamos el elemento que mostrará el usuario activo.
+    const elementoUsuario = document.createElement("li");
+    elementoUsuario.id = "usuarioConectadoMenu";
+    elementoUsuario.className = "nav-item";
+
+    const nombreUsuario = document.createElement("span");
+    nombreUsuario.className = "nav-link text-white";
+
     if (usuario) {
+        // Mostramos el nombre del usuario conectado.
+        nombreUsuario.textContent = usuario.nombre || usuario.email;
+
         // Eliminamos el enlace fijo de inicio de sesión del HTML.
         const enlacesLogin = menuPrincipal.querySelectorAll(
             'a[href="login.html"]'
@@ -56,16 +61,8 @@ export function actualizarNavegacion() {
             enlace.closest(".nav-item")?.remove();
         });
 
-        // Mostramos el correo del usuario conectado.
-        const elementoUsuario = document.createElement("li");
-        elementoUsuario.id = "usuarioConectadoMenu";
-        elementoUsuario.className = "nav-item";
-
-        const correoUsuario = document.createElement("span");
-        correoUsuario.className = "nav-link text-white";
-        correoUsuario.textContent = usuario.email;
-
-        elementoUsuario.appendChild(correoUsuario);
+        // Añadimos el elemento del usuario al menú.
+        elementoUsuario.appendChild(nombreUsuario);
         menuPrincipal.appendChild(elementoUsuario);
 
         // Añadimos la opción de cerrar sesión.
@@ -84,9 +81,9 @@ export function actualizarNavegacion() {
             cerrarSesion();
 
             // Actualizamos el menú.
-            actualizarNavegacion();
+            mostrarUsuarioActivo();
 
-            // Si estamos en el login, limpiamos el mensaje anterior.
+            // Si estamos en el login, recargamos la página.
             if (window.location.pathname.endsWith("/login.html")) {
                 window.location.reload();
             }
@@ -96,15 +93,23 @@ export function actualizarNavegacion() {
         menuPrincipal.appendChild(elementoCerrarSesion);
 
     } else {
-        // Si no existe el usuario, eliminamos una posible sesión inválida.
+        // Si existe una sesión inválida, la eliminamos.
         if (emailUsuario) {
             cerrarSesion();
         }
 
-        // No hay sesión: mostramos un único enlace de inicio de sesión.
+        // Mostramos que no hay ningún usuario conectado.
+        nombreUsuario.textContent = "-no login-";
+        elementoUsuario.appendChild(nombreUsuario);
+        menuPrincipal.appendChild(elementoUsuario);
+
+        // Mostramos el enlace de inicio de sesión.
         mostrarEnlaceLogin();
     }
 }
+
+// Mantenemos este nombre para no romper las importaciones existentes.
+export const actualizarNavegacion = mostrarUsuarioActivo;
 
 function mostrarEnlaceLogin() {
     // Comprobamos que exista el menú.
@@ -112,12 +117,12 @@ function mostrarEnlaceLogin() {
         return;
     }
 
-    // Evitamos duplicar el enlace dinámico.
+    // Evitamos duplicar el enlace.
     if (document.getElementById("iniciarSesionMenu")) {
         return;
     }
 
-    // Eliminamos posibles enlaces fijos de inicio de sesión del HTML.
+    // Eliminamos posibles enlaces fijos del HTML.
     const enlacesLogin = menuPrincipal.querySelectorAll(
         'a[href="login.html"]'
     );
@@ -140,8 +145,8 @@ function mostrarEnlaceLogin() {
     menuPrincipal.appendChild(elementoLogin);
 }
 
-// Comprobamos la sesión al cargar la página.
-actualizarNavegacion();
+// Esperamos a que el documento esté cargado.
+document.addEventListener("DOMContentLoaded", mostrarUsuarioActivo);
 
 // Escuchamos cambios de almacenamiento procedentes de otras pestañas.
-window.addEventListener("storage", actualizarNavegacion);
+window.addEventListener("storage", mostrarUsuarioActivo);

@@ -1,8 +1,10 @@
+
 /* ==========================================================================
    DOCUMENTACIÓN IA GENERATIVA
    - IA utilizada: ChatGPT
-   - Prompt 1: "Adapta login.js para consultar los usuarios desde localStorage
-     y guardar el correo del usuario conectado mediante almacenaje.js."
+   - Prompt 1: "Adapta login.js para crear una función loguearUsuario(),
+     gestionar el inicio de sesión mediante localStorage y configurar
+     los eventos click y submit sin duplicar la autenticación."
    ========================================================================== */
 
 // Importamos las funciones de almacenamiento y navegación.
@@ -13,23 +15,23 @@ import {
     cerrarSesion
 } from "./almacenaje.js";
 
-import { actualizarNavegacion } from "./navegacion.js";
+import { mostrarUsuarioActivo } from "./navegacion.js";
 
 // Buscamos el formulario y sus elementos.
 const formulario = document.getElementById("formularioLogin");
 const campoEmail = document.getElementById("email");
 const campoPassword = document.getElementById("password");
+const botonLogin = document.getElementById("loginButton");
 const mensaje = document.getElementById("mensajeLogin");
 
-// Escuchamos el envío del formulario.
-formulario.addEventListener("submit", async function (evento) {
-    // Evitamos que la página se recargue al enviar el formulario.
-    evento.preventDefault();
+// Función para mostrar mensajes en el formulario.
+function mostrarMensaje(texto, tipo) {
+    mensaje.textContent = texto;
+    mensaje.className = "alert alert-" + tipo + " mb-3";
+}
 
-    // Obtenemos los valores introducidos por el usuario.
-    const email = campoEmail.value.trim();
-    const password = campoPassword.value;
-
+// Función que gestiona el inicio de sesión.
+async function loguearUsuario(email, password) {
     try {
         // Inicializamos el almacenamiento.
         await inicializarAlmacenamiento();
@@ -39,26 +41,57 @@ formulario.addEventListener("submit", async function (evento) {
 
         // Comprobamos si las credenciales son correctas.
         if (usuarioEncontrado && usuarioEncontrado.password === password) {
-            mensaje.textContent = "¡Bienvenido/a, " + usuarioEncontrado.nombre + "!";
-            mensaje.className = "alert alert-success mb-3";
-
             // Guardamos el correo del usuario conectado.
             guardarUsuarioConectado(usuarioEncontrado.email);
 
-            actualizarNavegacion();
+            // Mostramos un mensaje de bienvenida.
+            mostrarMensaje(
+                "¡Bienvenido/a, " + usuarioEncontrado.nombre + "!",
+                "success"
+            );
+
+            // Actualizamos la navegación.
+            mostrarUsuarioActivo();
+
         } else {
             // Eliminamos una posible sesión anterior.
             cerrarSesion();
 
-            mensaje.textContent = "Correo electrónico o contraseña incorrectos.";
-            mensaje.className = "alert alert-danger mb-3";
+            mostrarMensaje(
+                "Correo electrónico o contraseña incorrectos.",
+                "danger"
+            );
 
-            actualizarNavegacion();
+            mostrarUsuarioActivo();
         }
+
     } catch (error) {
         console.error("Error al iniciar sesión:", error);
-
-        mensaje.textContent = "No se ha podido iniciar sesión.";
-        mensaje.className = "alert alert-danger mb-3";
+        mostrarMensaje("No se ha podido iniciar sesión.", "danger");
     }
+}
+
+// Esperamos a que el documento esté preparado.
+document.addEventListener("DOMContentLoaded", function () {
+
+    // Evento click del botón de inicio de sesión.
+    botonLogin.addEventListener("click", function (evento) {
+        // Evitamos que el botón envíe también el formulario.
+        evento.preventDefault();
+
+        const email = campoEmail.value.trim();
+        const password = campoPassword.value;
+
+        loguearUsuario(email, password);
+    });
+
+    // Evento submit del formulario, por ejemplo al pulsar Enter.
+    formulario.addEventListener("submit", function (evento) {
+        evento.preventDefault();
+
+        const email = campoEmail.value.trim();
+        const password = campoPassword.value;
+
+        loguearUsuario(email, password);
+    });
 });
