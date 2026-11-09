@@ -1,93 +1,104 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="es">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Favoritos - Tándem Lingüístico</title>
     <!-- CSS de Bootstrap -->
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-</head>
-<body class="bg-light">
-        <!-- Navegación principal -->
+    <link
+      href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css"
+      rel="stylesheet"
+    />
+  </head>
+  <body class="bg-light">
+    <!-- Navegación principal -->
     <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
-        <div class="container">
-            <a class="navbar-brand fw-bold" href="index.html">
-                TandemLink
-            </a>
+      <div class="container">
+        <a class="navbar-brand fw-bold" href="index.html"> TandemLink </a>
 
-            <button
-                class="navbar-toggler"
-                type="button"
-                data-bs-toggle="collapse"
-                data-bs-target="#menuPrincipal"
-                aria-controls="menuPrincipal"
-                aria-expanded="false"
-                aria-label="Mostrar navegación"
-            >
-                <span class="navbar-toggler-icon"></span>
-            </button>
+        <button
+          class="navbar-toggler"
+          type="button"
+          data-bs-toggle="collapse"
+          data-bs-target="#menuPrincipal"
+          aria-controls="menuPrincipal"
+          aria-expanded="false"
+          aria-label="Mostrar navegación"
+        >
+          <span class="navbar-toggler-icon"></span>
+        </button>
 
-            <div class="collapse navbar-collapse" id="menuPrincipal">
-                <ul class="navbar-nav ms-auto">
-                    <li class="nav-item">
-                        <a class="nav-link active" href="index.html">Inicio</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="login.html">Iniciar sesión</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="nueva-oferta.html">Intercambios</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="usuarios.html">Usuarios</a>
-                    </li>
-               <!-- Enlaces añadidos para los nuevos módulos del Producto 2 -->
-                    <li class="nav-item">
-                        <a class="nav-link active" href="canvas_intercambios.html">Generador Canvas</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="dragdrop.html">Favoritos</a>
-                    </li>
-                </ul>
-            </div>
+        <div class="collapse navbar-collapse" id="menuPrincipal">
+          <ul class="navbar-nav ms-auto">
+            <li class="nav-item">
+              <a class="nav-link" href="index.html">Inicio</a>
+            </li>
+            <li class="nav-item">
+              <a class="nav-link" href="login.html">Iniciar sesión</a>
+            </li>
+            <li class="nav-item">
+              <a class="nav-link" href="nueva-oferta.html">Intercambios</a>
+            </li>
+            <li class="nav-item">
+              <a class="nav-link" href="usuarios.html">Usuarios</a>
+            </li>
+            <!-- Enlaces añadidos para los nuevos módulos del Producto 2 -->
+            <li class="nav-item">
+              <a class="nav-link" href="canvas_intercambios.html"
+                >Generador Canvas</a
+              >
+            </li>
+            <li class="nav-item">
+              <a class="nav-link active" href="dragdrop.html">Favoritos</a>
+            </li>
+          </ul>
         </div>
+      </div>
     </nav>
 
     <div class="container my-5">
-        <h1 class="mb-4">Gestión de Favoritos (Drag & Drop)</h1>
-        <p class="text-muted">Arrastra los intercambios desde la lista de la izquierda y suéltalos en la zona de favoritos de la derecha.</p>
+      <h1 class="mb-4">Gestión de Favoritos (Drag & Drop)</h1>
+      <p class="text-muted">
+        Arrastra los intercambios desde la lista de la izquierda y suéltalos en
+        la zona de favoritos de la derecha.
+      </p>
 
-        <div class="row g-4">
-            <!-- Columna de Origen -->
-            <div class="col-md-6">
-                <div class="card shadow-sm h-100">
-                    <div class="card-header bg-primary text-white">
-                        <h2 class="h5 mb-0">Intercambios Disponibles</h2>
-                    </div>
-                    <div class="card-body" id="listaIntercambiosDrag">
-                        <!-- Las tarjetas arrastrables se cargarán aquí dinámicamente -->
-                    </div>
-                </div>
+      <div class="row g-4">
+        <!-- Columna de Origen -->
+        <div class="col-md-6">
+          <div class="card shadow-sm h-100">
+            <div class="card-header bg-primary text-white">
+              <h2 class="h5 mb-0">Intercambios Disponibles</h2>
             </div>
-
-            <!-- Columna de Destino (Dropzone) -->
-            <div class="col-md-6">
-                <div class="card shadow-sm h-100 border-success">
-                    <div class="card-header bg-success text-white">
-                        <h2 class="h5 mb-0">Zona de Favoritos</h2>
-                    </div>
-                    <div class="card-body border border-2 border-dashed rounded m-3 p-4 text-center text-muted" id="zonaFavoritos" style="min-height: 250px;">
-                        Suelta aquí los intercambios para añadirlos a tus favoritos
-                    </div>
-                </div>
+            <div class="card-body" id="listaIntercambiosDrag">
+              <!-- Las tarjetas arrastrables se cargarán aquí dinámicamente -->
             </div>
+          </div>
         </div>
 
-        <!-- Contenedor para mensajes de alerta -->
-        <div id="mensajeDragDrop"></div>
+        <!-- Columna de Destino (Dropzone) -->
+        <div class="col-md-6">
+          <div class="card shadow-sm h-100 border-success">
+            <div class="card-header bg-success text-white">
+              <h2 class="h5 mb-0">Zona de Favoritos</h2>
+            </div>
+            <div
+              class="card-body border border-2 border-dashed rounded m-3 p-4 text-center text-muted"
+              id="zonaFavoritos"
+              style="min-height: 250px"
+            >
+              Suelta aquí los intercambios para añadirlos a tus favoritos
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Contenedor para mensajes de alerta -->
+      <div id="mensajeDragDrop"></div>
     </div>
 
     <!-- Script principal como módulo -->
     <script type="module" src="./js/dragdrop.js"></script>
-</body>
+    <script type="module" src="js/navegacion.js"></script>
+  </body>
 </html>
