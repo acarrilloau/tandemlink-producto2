@@ -4,15 +4,17 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Favoritos - Tándem Lingüístico</title>
-    <!-- CSS de Bootstrap -->
+    <!-- CSS de Bootstrap 5.3 -->
     <link
-      href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css"
+      href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"
       rel="stylesheet"
     />
+    <!-- Nuestros estilos personalizados -->
+    <link rel="stylesheet" href="css/estilos.css" />
   </head>
   <body class="bg-light">
-    <!-- Navegación principal -->
-    <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+    <!-- Navegación principal de ancho completo idéntica a las demás vistas -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-primary mb-4">
       <div class="container">
         <a class="navbar-brand fw-bold" href="index.html"> TandemLink </a>
 
@@ -34,15 +36,11 @@
               <a class="nav-link" href="index.html">Inicio</a>
             </li>
             <li class="nav-item">
-              <a class="nav-link" href="login.html">Iniciar sesión</a>
-            </li>
-            <li class="nav-item">
-              <a class="nav-link" href="intercambios.html">Intercambios</a>
+              <a class="nav-link" href="nueva-oferta.html">Intercambios</a>
             </li>
             <li class="nav-item">
               <a class="nav-link" href="usuarios.html">Usuarios</a>
             </li>
-            <!-- Enlaces añadidos para los nuevos módulos del Producto 2 -->
             <li class="nav-item">
               <a class="nav-link active" href="dragdrop.html">Favoritos</a>
             </li>
@@ -89,8 +87,11 @@
       </div>
 
       <!-- Contenedor para mensajes de alerta -->
-      <div id="mensajeDragDrop"></div>
+      <div id="mensajeDragDrop" class="mt-3"></div>
     </div>
+
+    <!-- Bootstrap JS Bundle -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 
     <!-- Script principal como módulo -->
     <script type="module" src="./js/dragdrop.js"></script>
