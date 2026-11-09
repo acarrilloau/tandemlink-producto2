@@ -36,6 +36,11 @@ header p {
     letter-spacing: 0.3px;
 }
 
+#graficoIntercambios {
+    width: 400px;
+    height: 200px;
+}
+
 footer {
     margin-top: 1rem;
 }

@@ -1,11 +1,10 @@
 
 /* ==========================================================================
    DOCUMENTACIÓN IA GENERATIVA
-   - IA utilizada: ChatGPT
+   - IA utilizada: ChatGPT / Gemini
    - Prompt: "Adapta int_3_intercambios.js para gestionar los intercambios
-     mediante IndexedDB. Incluye el registro con título, email, fecha,
-     tipo, idiomas, modalidad y descripción; la consulta y el borrado
-     de registros. Mantén la compatibilidad con los intercambios antiguos."
+     mediante IndexedDB, mostrando las tarjetas, el gráfico circular en canvas
+     y manteniendo la compatibilidad y el borrado."
    ========================================================================== */
 
 // Importamos las funciones de almacenamiento.
@@ -17,7 +16,7 @@ import {
     obtenerUsuarios
 } from "./almacenaje.js";
 
-// Elementos del formulario.
+// Elementos del formulario y DOM.
 const formulario = document.getElementById("formularioIntercambio");
 const campoTitulo = document.getElementById("tituloIntercambio");
 const campoEmail = document.getElementById("emailIntercambio");
@@ -32,8 +31,12 @@ const mensaje = document.getElementById("mensajeIntercambio");
 const listaIntercambios = document.getElementById("listaIntercambios");
 const mensajeListaVacia = document.getElementById("mensajeListaVacia");
 
+// Elemento Canvas para el gráfico estadístico
+const canvas = document.getElementById("graficoIntercambios"); // Asegúrate de que tu canvas en el HTML tenga este ID
+
 // Mostramos mensajes en el formulario.
 function mostrarMensaje(texto, tipo) {
+    if (!mensaje) return;
     mensaje.textContent = texto;
     mensaje.className = `alert alert-${tipo} mt-3`;
 }
@@ -43,13 +46,102 @@ function formatearFecha(fecha) {
     if (!fecha) {
         return "Fecha no disponible";
     }
-
     const fechaValida = new Date(fecha + "T00:00:00");
-
     return fechaValida.toLocaleDateString("es-ES");
 }
 
-// Consultamos y mostramos los intercambios guardados.
+// -------------------------------------------------------------------------
+// DIBUJAR GRÁFICO CIRCULAR GRANDE Y CENTRADO
+// -------------------------------------------------------------------------
+function dibujarGrafico(lista) {
+    if (!canvas) return;
+
+    const contexto = canvas.getContext("2d");
+
+    const ofertas = lista.filter(
+        i => i.tipo === "oferta"
+    ).length;
+
+    const peticiones = lista.filter(
+        i => i.tipo === "petición" || i.tipo === "peticion"
+    ).length;
+
+    const total = ofertas + peticiones;
+
+    contexto.clearRect(0, 0, canvas.width, canvas.height);
+
+    // Coordenadas centradas para un canvas de 800x400
+    const centroX = 300;
+    const centroY = canvas.height / 2;
+    const radio = 160; // Círculo mucho más grande
+
+    if (total === 0) {
+        contexto.beginPath();
+        contexto.arc(centroX, centroY, radio, 0, Math.PI * 2);
+        contexto.fillStyle = "#dce2e9";
+        contexto.fill();
+        
+        contexto.font = "22px Arial";
+        contexto.fillStyle = "#263238";
+        contexto.textAlign = "center";
+        contexto.fillText("Sin datos", centroX, centroY);
+    } else {
+        let anguloInicial = -Math.PI / 2;
+
+        const datos = [
+            { cantidad: ofertas, color: "#198754" },
+            { cantidad: peticiones, color: "#ffc107" }
+        ];
+
+        datos.forEach(dato => {
+            if (dato.cantidad === 0) return;
+
+            const angulo = (dato.cantidad / total) * Math.PI * 2;
+
+            contexto.beginPath();
+            contexto.moveTo(centroX, centroY);
+            contexto.arc(
+                centroX,
+                centroY,
+                radio,
+                anguloInicial,
+                anguloInicial + angulo
+            );
+            contexto.closePath();
+
+            contexto.fillStyle = dato.color;
+            contexto.fill();
+
+            anguloInicial += angulo;
+        });
+    }
+
+    // Leyenda del gráfico dimensionada y legible
+    const leyendaX = 530;
+    
+    contexto.font = "22px Arial";
+    contexto.textAlign = "left";
+
+    // Ofertas
+    contexto.fillStyle = "#198754";
+    contexto.fillRect(leyendaX, centroY - 60, 28, 28);
+    contexto.fillStyle = "#263238";
+    contexto.fillText(`Ofertas: ${ofertas}`, leyendaX + 40, centroY - 38);
+
+    // Peticiones
+    contexto.fillStyle = "#ffc107";
+    contexto.fillRect(leyendaX, centroY - 10, 28, 28);
+    contexto.fillStyle = "#263238";
+    contexto.fillText(`Peticiones: ${peticiones}`, leyendaX + 40, centroY + 12);
+
+    // Total
+    contexto.font = "bold 22px Arial";
+    contexto.fillStyle = "#263238";
+    contexto.fillText(`Total: ${total}`, leyendaX, centroY + 75);
+}
+
+
+// Consultamos y mostramos los intercambios y el gráfico.
 async function mostrarIntercambios() {
     const intercambios = await obtenerIntercambios();
     const usuarios = obtenerUsuarios();
@@ -57,7 +149,6 @@ async function mostrarIntercambios() {
     listaIntercambios.innerHTML = "";
 
     intercambios.forEach(function (intercambio) {
-
         // Compatibilidad con los intercambios antiguos.
         const usuarioAntiguo = usuarios.find(function (usuario) {
             return usuario.id === intercambio.usuarioId;
@@ -78,7 +169,7 @@ async function mostrarIntercambios() {
 
         // Creamos la tarjeta.
         const tarjeta = document.createElement("div");
-        tarjeta.className = "col-12 col-md-6 col-lg-4";
+        tarjeta.className = "col-12 col-md-6 col-lg-4 mb-3";
 
         const articulo = document.createElement("article");
         articulo.className = `card h-100 border-${color} shadow-sm`;
@@ -118,7 +209,7 @@ async function mostrarIntercambios() {
 
         const botonEliminar = document.createElement("button");
         botonEliminar.type = "button";
-        botonEliminar.className = "btn btn-outline-danger btn-sm";
+        botonEliminar.className = "btn btn-outline-danger btn-sm mt-2";
         botonEliminar.textContent = "Eliminar";
         botonEliminar.dataset.id = intercambio.id;
 
@@ -136,9 +227,14 @@ async function mostrarIntercambios() {
         listaIntercambios.appendChild(tarjeta);
     });
 
-    mensajeListaVacia.textContent = intercambios.length === 0
-        ? "Todavía no hay intercambios publicados."
-        : "";
+    if (mensajeListaVacia) {
+        mensajeListaVacia.textContent = intercambios.length === 0
+            ? "Todavía no hay intercambios publicados."
+            : "";
+    }
+
+    // Actualizamos también el gráfico estadístico con la lista actual
+    dibujarGrafico(intercambios);
 }
 
 // Gestionamos el alta de intercambios.
@@ -250,7 +346,9 @@ listaIntercambios.addEventListener("click", async function (evento) {
     }
 });
 
-// Inicializamos el almacenamiento antes de cargar los intercambios.
+// -------------------------------------------------------------------------
+// INICIALIZACIÓN DE LA PÁGINA
+// -------------------------------------------------------------------------
 async function iniciarPagina() {
     try {
         await inicializarAlmacenamiento();
@@ -266,4 +364,5 @@ async function iniciarPagina() {
     }
 }
 
+// Ejecución principal al cargar el script
 iniciarPagina();
