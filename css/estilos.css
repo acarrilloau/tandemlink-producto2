@@ -1,41 +1,273 @@
-/* Importación de Google Fonts (Arimo) */
-@import url('https://fonts.googleapis.com/css2?family=Arimo:ital,wght@0,400..700;1,400..700&display=swap');
 
-/* Estilos generales de TandemLink */
+/* =====================================
+   CONFIGURACIÓN GENERAL
+===================================== */
+
+* {
+    box-sizing: border-box;
+}
 
 body {
-    background-color: #f8f9fc;
-    color: #263238;
-/* Usamos la web font importada como principal */
-    font-family: 'Arimo', Arial, Helvetica, sans-serif;
+    margin: 0;
+    background-color: #f6f8fb;
+    color: #263445;
+    font-family: Arial, Helvetica, sans-serif;
 }
 
-header {
-    max-width: 900px;
-}
 
-header h1 {
-    color: #173b67;
-}
+/* =====================================
+   BARRA DE NAVEGACIÓN
+===================================== */
 
-header p {
-    color: #5f6b76;
-}
-
-.card {
-    border-radius: 12px;
-    transition: transform 0.2s ease, box-shadow 0.2s ease;
-}
-
-.card:hover {
-    transform: translateY(-4px);
-    box-shadow: 0 0.5rem 1rem rgb(0 0 0 / 10%) !important;
+.navbar {
+    min-height: 58px;
 }
 
 .navbar-brand {
+    font-size: 1.3rem;
     letter-spacing: 0.3px;
 }
 
-footer {
-    margin-top: 1rem;
+.navbar-nav .nav-link {
+    margin-left: 8px;
+}
+
+.navbar-text {
+    color: white !important;
+    font-size: 0.9rem;
+}
+
+
+/* =====================================
+   PRESENTACIÓN PRINCIPAL
+===================================== */
+
+.hero {
+    padding: 55px 0 50px;
+}
+
+.hero h1 {
+    color: #174477;
+    font-size: 2.5rem;
+    font-weight: bold;
+    margin-bottom: 15px;
+}
+
+.hero p {
+    color: #68798b;
+    font-size: 1.1rem;
+    margin-bottom: 25px;
+}
+
+.hero .btn {
+    padding: 11px 25px;
+}
+
+
+/* =====================================
+   TÍTULOS Y CONTENIDO
+===================================== */
+
+.section-title {
+    color: #20364d;
+    font-size: 1.55rem;
+    font-weight: 600;
+}
+
+
+/* =====================================
+   TARJETAS DE INTERCAMBIOS
+===================================== */
+
+.exchange-card {
+    background-color: white;
+    border: 1px solid #28a66a;
+    border-radius: 10px;
+    padding: 0;
+    height: auto;
+    overflow: hidden;
+    cursor: grab;
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.exchange-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 5px 14px rgba(0, 0, 0, 0.09);
+}
+
+.exchange-card.peticion {
+    border-color: #ffb000;
+}
+
+/* Cabecera verde para ofertas */
+.exchange-card.oferta .exchange-card-header {
+    background-color: #198754;
+    color: white;
+}
+
+/* Cabecera amarilla para peticiones */
+.exchange-card.peticion .exchange-card-header {
+    background-color: #ffc107;
+    color: #212529;
+}
+
+.exchange-card-header {
+    position: relative;
+    padding: 13px 18px;
+    font-size: 1.05rem;
+    font-weight: bold;
+}
+
+.exchange-card-body {
+    padding: 15px 18px;
+}
+
+.exchange-card-body p {
+    color: #68798b;
+    margin-bottom: 10px;
+}
+
+.exchange-card-body p:last-child {
+    margin-bottom: 0;
+}
+
+.exchange-card.dragging {
+    opacity: 0.5;
+}
+
+
+/* =====================================
+   ETIQUETAS DE TIPO
+===================================== */
+
+.type-badge {
+    display: inline-block;
+    background-color: #198754;
+    color: white;
+    padding: 4px 9px;
+    border-radius: 5px;
+    font-size: 0.75rem;
+    font-weight: bold;
+}
+
+.type-badge.peticion {
+    background-color: #ffc107;
+    color: #212529;
+}
+
+
+/* =====================================
+   ZONA DE SELECCIÓN
+===================================== */
+
+.drop-zone {
+    min-height: 140px;
+    background-color: white;
+    border: 2px dashed #aebdce;
+    border-radius: 10px;
+    padding: 20px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 15px;
+    align-items: flex-start;
+}
+
+.drop-zone.drag-over {
+    background-color: #eef5ff;
+    border-color: #0d6efd;
+}
+
+/* Tarjetas completas dentro de la selección */
+.selected-card {
+    position: relative;
+    flex: 1 1 300px;
+    min-width: 250px;
+    max-width: 100%;
+    margin: 0;
+    cursor: default;
+}
+
+/* Espacio para la X */
+.selected-card .exchange-card-header {
+    padding-right: 55px;
+}
+
+/* Botón de eliminar */
+.btn-quitar {
+    position: absolute;
+    top: 50%;
+    right: 15px;
+    transform: translateY(-50%);
+    width: 30px;
+    height: 30px;
+    border: none;
+    border-radius: 50%;
+    background-color: rgba(255, 255, 255, 0.2);
+    color: inherit;
+    font-size: 23px;
+    line-height: 1;
+    cursor: pointer;
+    transition: background-color 0.2s, transform 0.2s;
+}
+
+.btn-quitar:hover {
+    background-color: rgba(255, 255, 255, 0.35);
+    transform: translateY(-50%) scale(1.1);
+}
+
+
+/* =====================================
+   PIE DE PÁGINA
+===================================== */
+
+.footer {
+    border-top: 1px solid #dce2e9;
+    color: #738194;
+    text-align: center;
+    padding: 22px 12px;
+    font-size: 0.9rem;
+}
+
+
+/* =====================================
+   DISEÑO RESPONSIVE
+===================================== */
+
+@media (max-width: 768px) {
+
+    .hero {
+        padding: 35px 15px;
+    }
+
+    .hero h1 {
+        font-size: 2rem;
+    }
+
+    .section-title {
+        font-size: 1.35rem;
+    }
+
+    .selected-card {
+        flex-basis: 100%;
+        min-width: 0;
+    }
+}
+
+
+/* =====================================
+   GRÁFICO CIRCULAR DE INTERCAMBIOS
+===================================== */
+
+.grafico-card {
+    width: fit-content;
+    max-width: 100%;
+    margin-top: 12px;
+}
+
+#graficoIntercambios {
+    display: block;
+    width: 600px;
+    max-width: 100%;
+    height: auto;
+    margin: 0;
 }

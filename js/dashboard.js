@@ -1,104 +1,240 @@
-/* ==========================================================================
-   DOCUMENTACIÓN IA GENERATIVA
-   - IA utilizada: Gemini
-   - Prompt 1: "Importa los arrays de datos y captura los elementos del DOM (contenedor y filtros)."
-   - Prompt 2: "Usa .filter() para mostrar solo las ofertas o peticiones seleccionadas."
-   - Prompt 3: "Aplica .sort() y .slice() para ordenar las tarjetas por fecha de forma cronológica."
-   - Prompt 4: "Añade eventos 'change' a los selectores para actualizar la vista de forma automática."
-   ========================================================================== */
 
-// Importamos los datos de usuarios e intercambios.
-import { usuarios, intercambios } from "./datos.js";
+import { intercambios as datosIniciales } from "./datos.js";
 
-// Buscamos el contenedor donde aparecerán las tarjetas.
-const contenedor = document.getElementById("contenedorIntercambios");
+import {
+    consultarUsuarios,
+    consultarIntercambiosBD,
+    guardarIntercambioBD,
+    consultarSeleccionados,
+    guardarSeleccionado,
+    eliminarSeleccionado
+} from "./almacenaje.js";
 
-// Buscamos el selector de tipo de intercambio.
+// Elementos del HTML
+const contenedorTarjetas = document.getElementById("tarjetasIntercambios");
+const zonaSeleccion = document.getElementById("zonaSeleccion");
 const filtroTipo = document.getElementById("filtroTipo");
-
-// Buscamos el selector para ordenar por fecha.
 const ordenFecha = document.getElementById("ordenFecha");
 
-// Función para mostrar todos los intercambios.
-function mostrarIntercambios() {
-    // Limpiamos el contenedor antes de mostrar los datos.
-    contenedor.innerHTML = "";
+// Inicializar los intercambios si IndexedDB está vacía
+async function inicializarIntercambios() {
+    let lista = await consultarIntercambiosBD();
 
-    // Filtramos los intercambios según la opción seleccionada.
-    intercambios
-    .filter(function (intercambio) {
-        return filtroTipo.value === "todos" ||
-               intercambio.tipo === filtroTipo.value;
-    })
-    .slice()
-    .sort(function (a, b) {
-        if (ordenFecha.value === "recientes") {
-            return b.fechaCreacion.localeCompare(a.fechaCreacion);
+    if (lista.length === 0) {
+        for (const intercambio of datosIniciales) {
+            await guardarIntercambioBD(intercambio);
         }
 
-        return a.fechaCreacion.localeCompare(b.fechaCreacion);
-    })
-    .forEach(function (intercambio) {
+        lista = await consultarIntercambiosBD();
+    }
 
-        // Buscamos al usuario que ha publicado el intercambio.
-        const usuario = usuarios.find(function (u) {
-            return u.id === intercambio.usuarioId;
+    return lista;
+}
+
+// Mostrar las tarjetas de intercambios
+async function mostrarIntercambios() {
+    let lista = await consultarIntercambiosBD();
+
+    const tipoSeleccionado = filtroTipo.value;
+    const ordenSeleccionado = ordenFecha.value;
+
+    // Aplicar filtro
+    if (tipoSeleccionado !== "todos") {
+        lista = lista.filter(
+            intercambio => intercambio.tipo === tipoSeleccionado
+        );
+    }
+
+    // Aplicar ordenación
+    lista.sort((a, b) => {
+        const fechaA = new Date(a.fechaCreacion);
+        const fechaB = new Date(b.fechaCreacion);
+
+        return ordenSeleccionado === "antiguos"
+            ? fechaA - fechaB
+            : fechaB - fechaA;
+    });
+
+    const usuarios = await consultarUsuarios();
+
+    contenedorTarjetas.innerHTML = "";
+
+    if (lista.length === 0) {
+        contenedorTarjetas.textContent = "No hay intercambios disponibles.";
+        return;
+    }
+
+    // Recorrer todos los intercambios
+    lista.forEach(intercambio => {
+        const usuario = usuarios.find(
+            u => u.id === intercambio.usuarioId
+        );
+
+        const tarjeta = document.createElement("article");
+        const claseTipo = intercambio.tipo
+            .toLowerCase()
+            .normalize("NFD")
+            .replace(/[\u0300-\u036f]/g, "");
+
+        tarjeta.className = `exchange-card ${claseTipo}`;
+        tarjeta.draggable = true;
+        tarjeta.dataset.id = intercambio.id;
+
+        // Cabecera de la tarjeta
+        const cabecera = document.createElement("div");
+        cabecera.className = "exchange-card-header";
+        cabecera.textContent = intercambio.tipo === "oferta"
+            ? "Oferta de intercambio"
+            : "Petición de intercambio";
+
+        // Cuerpo de la tarjeta
+        const cuerpo = document.createElement("div");
+        cuerpo.className = "exchange-card-body";
+
+        const usuarioTexto = document.createElement("p");
+        usuarioTexto.textContent =
+            `Usuario: ${usuario?.nombre || "Usuario desconocido"}`;
+
+        const idiomas = document.createElement("p");
+        idiomas.textContent =
+            `Ofrece: ${intercambio.idiomaOfrecido} | Busca: ${intercambio.idiomaBuscado}`;
+
+        const modalidad = document.createElement("p");
+        modalidad.textContent = `Modalidad: ${intercambio.modalidad}`;
+
+        const descripcion = document.createElement("p");
+        descripcion.textContent = intercambio.descripcion;
+
+        cuerpo.append(usuarioTexto, idiomas, modalidad, descripcion);
+        tarjeta.append(cabecera, cuerpo);
+
+        // Permitir arrastrar la tarjeta
+        tarjeta.addEventListener("dragstart", event => {
+            event.dataTransfer.setData(
+                "text/plain",
+                String(intercambio.id)
+            );
         });
 
-        // Comprobamos si es una oferta o una petición.
-        const esOferta = intercambio.tipo === "oferta";
-        const color = esOferta ? "success" : "warning";
-        const tipoTexto = esOferta ? "Oferta" : "Petición";
-
-        // Creamos el elemento que contendrá la tarjeta.
-        const tarjeta = document.createElement("div");
-        tarjeta.className = "col-12 col-md-6 col-lg-4";
-
-        // Creamos el contenido de la tarjeta.
-        tarjeta.innerHTML = `
-            <article class="card h-100 border-${color} shadow-sm">
-                <div class="card-body">
-                    <span class="badge text-bg-${color} mb-3">
-                        ${tipoTexto}
-                    </span>
-
-                    <h3 class="card-title h5">
-                        ${intercambio.idiomaOfrecido} por
-                        ${intercambio.idiomaBuscado}
-                    </h3>
-
-                    <p class="card-text">
-                        ${intercambio.descripcion}
-                    </p>
-
-                    <p class="small mb-2">
-                        <strong>Modalidad:</strong>
-                        ${intercambio.modalidad}
-                    </p>
-
-                    <p class="small mb-2">
-                        <strong>Fecha de publicación:</strong>
-                        ${new Date(intercambio.fechaCreacion + "T00:00:00").toLocaleDateString("es-ES")}
-                    </p>
-
-                    <p class="small mb-0">
-                        <strong>Usuario:</strong>
-                        ${usuario ? usuario.nombre : "Usuario desconocido"}
-                    </p>
-                </div>
-            </article>
-        `;
-
-        // Añadimos la tarjeta al contenedor del dashboard.
-        contenedor.appendChild(tarjeta);
+        contenedorTarjetas.appendChild(tarjeta);
     });
 }
 
-// Mostramos los intercambios al cargar la página.
-mostrarIntercambios();
+// Mostrar los intercambios seleccionados
+async function mostrarSeleccionados() {
+    const seleccionados = await consultarSeleccionados();
+    const usuarios = await consultarUsuarios();
 
-// Actualizamos las tarjetas cuando cambia el filtro.
+    zonaSeleccion.innerHTML = "";
+
+    if (seleccionados.length === 0) {
+        zonaSeleccion.textContent =
+            "Arrastra aquí los intercambios que te interesen.";
+        return;
+    }
+
+    seleccionados.forEach(intercambio => {
+        const usuario = usuarios.find(
+            u => u.id === intercambio.usuarioId
+        );
+
+        const tarjeta = document.createElement("article");
+        const claseTipo = intercambio.tipo
+            .toLowerCase()
+            .normalize("NFD")
+            .replace(/[\u0300-\u036f]/g, "");
+
+        tarjeta.className = `exchange-card selected-card ${claseTipo}`;
+
+        // Cabecera
+        const cabecera = document.createElement("div");
+        cabecera.className = "exchange-card-header";
+        cabecera.textContent = intercambio.tipo === "oferta"
+            ? "Oferta de intercambio"
+            : "Petición de intercambio";
+
+        // Botón X para eliminar
+        const botonEliminar = document.createElement("button");
+        botonEliminar.className = "btn-quitar";
+        botonEliminar.type = "button";
+        botonEliminar.textContent = "×";
+        botonEliminar.setAttribute(
+            "aria-label",
+            "Eliminar intercambio"
+        );
+
+        botonEliminar.addEventListener("click", async () => {
+            await eliminarSeleccionado(intercambio.id);
+            await mostrarSeleccionados();
+        });
+
+        cabecera.appendChild(botonEliminar);
+
+        // Cuerpo
+        const cuerpo = document.createElement("div");
+        cuerpo.className = "exchange-card-body";
+
+        const datos = [
+            `Usuario: ${usuario?.nombre || "Usuario desconocido"}`,
+            `Ofrece: ${intercambio.idiomaOfrecido} | Busca: ${intercambio.idiomaBuscado}`,
+            `Modalidad: ${intercambio.modalidad}`,
+            intercambio.descripcion
+        ];
+
+        datos.forEach(texto => {
+            const parrafo = document.createElement("p");
+            parrafo.textContent = texto;
+            cuerpo.appendChild(parrafo);
+        });
+
+        tarjeta.append(cabecera, cuerpo);
+        zonaSeleccion.appendChild(tarjeta);
+    });
+}
+
+// Configurar la zona de arrastrar y soltar
+zonaSeleccion.addEventListener("dragover", event => {
+    event.preventDefault();
+});
+
+zonaSeleccion.addEventListener("drop", async event => {
+    event.preventDefault();
+
+    const id = Number(event.dataTransfer.getData("text/plain"));
+
+    const intercambios = await consultarIntercambiosBD();
+    const intercambio = intercambios.find(item => item.id === id);
+
+    if (!intercambio) return;
+
+    const seleccionados = await consultarSeleccionados();
+
+    const yaExiste = seleccionados.some(
+        item => item.id === intercambio.id
+    );
+
+    if (!yaExiste) {
+        await guardarSeleccionado(intercambio);
+    }
+
+    await mostrarSeleccionados();
+});
+
+// Eventos de filtros
 filtroTipo.addEventListener("change", mostrarIntercambios);
-
-// Actualizamos las tarjetas cuando cambia el orden por fecha.
 ordenFecha.addEventListener("change", mostrarIntercambios);
+
+// Arrancar el dashboard
+async function iniciarDashboard() {
+    try {
+        await inicializarIntercambios();
+        await mostrarIntercambios();
+        await mostrarSeleccionados();
+    } catch (error) {
+        console.error("Error al cargar el dashboard:", error);
+        contenedorTarjetas.textContent =
+            "No se han podido cargar los intercambios.";
+    }
+}
+
+iniciarDashboard();

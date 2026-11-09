@@ -1,165 +1,221 @@
-/* ==========================================================================
-   DOCUMENTACIÓN IA GENERATIVA
-   - IA utilizada: ChatGPT
-   - Prompt 1: "Adapta usuarios.js para gestionar el registro, la visualización y la eliminación de usuarios mediante las funciones de almacenaje.js y localStorage, incluyendo el cierre de sesión si se elimina el usuario conectado."
-   - Prompt 2: ""
-   ========================================================================== */
-   
-// Importamos las funciones de almacenamiento y navegación.
+
 import {
-    inicializarAlmacenamiento,
-    obtenerUsuarios,
-    guardarUsuario,
-    eliminarUsuario,
-    obtenerUsuarioConectado,
-    cerrarSesion
+    obtenerUsuarioActivo,
+    consultarUsuarios,
+    crearUsuario,
+    editarUsuario,
+    eliminarUsuario
 } from "./almacenaje.js";
 
-import { actualizarNavegacion } from "./navegacion.js";
-
-// Elementos del formulario y de la tabla.
+// Elementos de la página
 const formulario = document.getElementById("formularioUsuario");
-const campoNombre = document.getElementById("nombre");
-const campoEmail = document.getElementById("emailUsuario");
-const campoPassword = document.getElementById("passwordUsuario");
+const tablaUsuarios = document.getElementById("tablaUsuarios");
 const mensaje = document.getElementById("mensajeUsuario");
-const listaUsuarios = document.getElementById("listaUsuarios");
-const mensajeListaVacia = document.getElementById("mensajeListaVacia");
 
-// Mostramos los usuarios guardados.
+const tituloFormulario = document.getElementById("tituloFormularioUsuario");
+const botonGuardar = document.getElementById("botonGuardarUsuario");
+const botonCancelar = document.getElementById("cancelarEdicion");
+
+// Usuario que estamos editando
+let usuarioEnEdicion = null;
+
+// Obtener el usuario que tiene la sesión iniciada
+function obtenerUsuarioSesion() {
+    const emailActivo = obtenerUsuarioActivo();
+
+    if (!emailActivo) return null;
+
+    return consultarUsuarios().find(
+        usuario => usuario.email.toLowerCase() === emailActivo.toLowerCase()
+    ) || null;
+}
+
+// Comprobar si el usuario activo es propietario del perfil
+function esPropietario(usuario) {
+    const usuarioActivo = obtenerUsuarioSesion();
+
+    return usuarioActivo !== null && usuarioActivo.id === usuario.id;
+}
+
+// Mostrar los usuarios en la tabla
 function mostrarUsuarios() {
-    const usuarios = obtenerUsuarios();
+    if (!tablaUsuarios) return;
 
-    listaUsuarios.innerHTML = "";
+    const usuarios = consultarUsuarios();
+    tablaUsuarios.innerHTML = "";
 
-    usuarios.forEach(function (usuario) {
+    usuarios.forEach(usuario => {
         const fila = document.createElement("tr");
 
-        fila.innerHTML = `
-            <td>${usuario.id}</td>
-            <td></td>
-            <td></td>
-            <td>
-                <button
-                    type="button"
-                    class="btn btn-danger btn-sm"
-                    data-id="${usuario.id}"
-                >
-                    Eliminar
-                </button>
-            </td>
-        `;
+        const celdaNombre = document.createElement("td");
+        celdaNombre.textContent = usuario.nombre;
 
-        fila.children[1].textContent = usuario.nombre;
-        fila.children[2].textContent = usuario.email;
+        const celdaEmail = document.createElement("td");
+        celdaEmail.textContent = usuario.email;
 
-        listaUsuarios.appendChild(fila);
+        const celdaPassword = document.createElement("td");
+        celdaPassword.textContent = "••••••••";
+
+        const celdaAcciones = document.createElement("td");
+
+        if (esPropietario(usuario)) {
+            const grupoBotones = document.createElement("div");
+            grupoBotones.className = "d-flex gap-2";
+
+            // Botón editar
+            const botonEditar = document.createElement("button");
+            botonEditar.textContent = "Editar";
+            botonEditar.className = "btn btn-warning btn-sm btn-editar";
+
+            botonEditar.addEventListener("click", function () {
+                if (!esPropietario(usuario)) {
+                    mensaje.textContent = "Solo puedes editar tu propio perfil.";
+                    mensaje.className = "text-danger mt-3";
+                    return;
+                }
+
+                usuarioEnEdicion = usuario.id;
+
+                document.getElementById("nombre").value = usuario.nombre;
+                document.getElementById("email").value = usuario.email;
+                document.getElementById("password").value = "";
+
+                tituloFormulario.textContent = "Editar usuario";
+                botonGuardar.textContent = "Guardar cambios";
+                botonCancelar.hidden = false;
+
+                mensaje.textContent = "Modifica los datos de tu perfil.";
+                mensaje.className = "text-dark mt-3";
+
+                formulario.scrollIntoView({ behavior: "smooth" });
+            });
+
+            // Botón eliminar
+            const botonEliminar = document.createElement("button");
+            botonEliminar.textContent = "Eliminar";
+            botonEliminar.className = "btn btn-danger btn-sm btn-eliminar";
+
+            botonEliminar.addEventListener("click", function () {
+                if (!esPropietario(usuario)) {
+                    mensaje.textContent = "Solo puedes eliminar tu propio perfil.";
+                    mensaje.className = "text-danger mt-3";
+                    return;
+                }
+
+                const confirmar = confirm(
+                    "¿Quieres eliminar tu propio perfil?"
+                );
+
+                if (confirmar) {
+                    eliminarUsuario(usuario.id);
+
+                    if (usuarioEnEdicion === usuario.id) {
+                        cancelarEdicion();
+                    }
+
+                    mostrarUsuarios();
+                }
+            });
+
+            grupoBotones.appendChild(botonEditar);
+            grupoBotones.appendChild(botonEliminar);
+            celdaAcciones.appendChild(grupoBotones);
+
+        } else {
+            celdaAcciones.textContent = "Sin permisos";
+        }
+
+        fila.appendChild(celdaNombre);
+        fila.appendChild(celdaEmail);
+        fila.appendChild(celdaPassword);
+        fila.appendChild(celdaAcciones);
+
+        tablaUsuarios.appendChild(fila);
     });
-
-    mensajeListaVacia.textContent = usuarios.length === 0
-        ? "Todavía no hay usuarios registrados."
-        : "";
 }
 
-// Mostramos un mensaje al usuario.
-function mostrarMensaje(texto, tipo) {
-    mensaje.textContent = texto;
-    mensaje.className = `alert alert-${tipo} mt-3`;
-}
+// Volver al modo de registro
+function cancelarEdicion() {
+    usuarioEnEdicion = null;
 
-// Registramos un usuario al enviar el formulario.
-formulario.addEventListener("submit", function (evento) {
-    evento.preventDefault();
-
-    const nombre = campoNombre.value.trim();
-    const email = campoEmail.value.trim();
-    const password = campoPassword.value;
-
-    const usuarios = obtenerUsuarios();
-
-    // Comprobamos que el correo no esté registrado.
-    const correoExiste = usuarios.some(function (usuario) {
-        return usuario.email.toLowerCase() === email.toLowerCase();
-    });
-
-    if (correoExiste) {
-        mostrarMensaje("Ya existe un usuario con ese correo electrónico.", "danger");
-        return;
-    }
-
-    // Generamos un identificador nuevo.
-    const nuevoId = usuarios.length > 0
-        ? Math.max(...usuarios.map(function (usuario) {
-            return usuario.id;
-        })) + 1
-        : 1;
-
-    // Guardamos el nuevo usuario en localStorage.
-    guardarUsuario({
-        id: nuevoId,
-        nombre: nombre,
-        email: email,
-        password: password
-    });
-
-    mostrarUsuarios();
     formulario.reset();
 
-    mostrarMensaje("Usuario registrado correctamente.", "success");
-});
+    tituloFormulario.textContent = "Registrar nuevo usuario";
+    botonGuardar.textContent = "Registrar usuario";
+    botonCancelar.hidden = true;
 
-// Gestionamos los clics en los botones de eliminar.
-listaUsuarios.addEventListener("click", async function (evento) {
-    const boton = evento.target.closest("button[data-id]");
-
-    if (!boton) {
-        return;
-    }
-
-    const id = Number(boton.dataset.id);
-
-    const usuario = obtenerUsuarios().find(function (usuario) {
-        return usuario.id === id;
-    });
-
-    if (!usuario) {
-        return;
-    }
-
-    const confirmar = window.confirm(
-        "¿Seguro que quieres eliminar este usuario?"
-    );
-
-    if (!confirmar) {
-        return;
-    }
-
-    // Comprobamos si el usuario eliminado tiene la sesión activa.
-    const emailConectado = obtenerUsuarioConectado();
-
-    if (emailConectado &&
-        emailConectado.toLowerCase() === usuario.email.toLowerCase()) {
-        cerrarSesion();
-    }
-
-    // Eliminamos el usuario de localStorage.
-    eliminarUsuario(id);
-
-    mostrarUsuarios();
-    mostrarMensaje("Usuario eliminado correctamente.", "success");
-
-    actualizarNavegacion();
-});
-
-// Inicializamos el almacenamiento antes de mostrar los usuarios.
-async function iniciarPagina() {
-    try {
-        await inicializarAlmacenamiento();
-        mostrarUsuarios();
-    } catch (error) {
-        console.error("Error al inicializar el almacenamiento:", error);
-        mostrarMensaje("No se han podido cargar los usuarios.", "danger");
-    }
+    mensaje.textContent = "";
 }
 
-iniciarPagina();
+// Registrar o editar usuario
+if (formulario) {
+    formulario.addEventListener("submit", function (evento) {
+        evento.preventDefault();
+
+        const nombre = document.getElementById("nombre").value.trim();
+        const email = document.getElementById("email").value.trim();
+        const password = document.getElementById("password").value;
+
+        let resultado;
+
+        if (usuarioEnEdicion !== null) {
+
+            const usuarioOriginal = consultarUsuarios().find(
+                usuario => usuario.id === usuarioEnEdicion
+            );
+
+            if (!usuarioOriginal || !esPropietario(usuarioOriginal)) {
+                mensaje.textContent = "No tienes permiso para editar este perfil.";
+                mensaje.className = "text-danger mt-3";
+                cancelarEdicion();
+                return;
+            }
+
+            const usuarioActualizado = {
+                id: usuarioEnEdicion,
+                nombre,
+                email
+            };
+
+            if (password !== "") {
+                usuarioActualizado.password = password;
+            }
+
+            resultado = editarUsuario(usuarioActualizado);
+
+        } else {
+            // Se mantiene el registro de nuevas cuentas
+            // para que cualquier visitante pueda registrarse.
+            const usuario = {
+                nombre,
+                email,
+                password
+            };
+
+            resultado = crearUsuario(usuario);
+        }
+
+        if (resultado) {
+            mensaje.textContent = usuarioEnEdicion !== null
+                ? "Usuario actualizado correctamente."
+                : "Usuario registrado correctamente.";
+
+            mensaje.className = "text-success mt-3";
+
+            cancelarEdicion();
+            mostrarUsuarios();
+
+        } else {
+            mensaje.textContent = "Ya existe otro usuario con ese correo.";
+            mensaje.className = "text-danger mt-3";
+        }
+    });
+}
+
+// Cancelar edición
+if (botonCancelar) {
+    botonCancelar.addEventListener("click", cancelarEdicion);
+}
+
+// Mostrar usuarios al cargar la página
+mostrarUsuarios();

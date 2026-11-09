@@ -1,61 +1,131 @@
-/* ==========================================================================
-   DOCUMENTACIÓN IA GENERATIVA
-   - IA utilizada: ChatGPT
-   - Prompt 1: "Crea la estructura inicial de un módulo JavaScript llamado almacenaje.js que importe los datos iniciales de usuarios e intercambios, inicialice localStorage para guardar los usuarios y utilice IndexedDB para crear una base de datos con dos almacenes: intercambios y seleccionados. Carga los intercambios iniciales al crear la base de datos."
-   - Prompt 2: "Crea funciones en JavaScript para gestionar usuarios mediante localStorage: consultar todos los usuarios, guardar uno nuevo, eliminarlo por ID, buscarlo por correo electrónico y gestionar la sesión del usuario conectado."
-   - Prompt 3: "Crea funciones JavaScript asíncronas para gestionar intercambios mediante IndexedDB: obtener todos los intercambios, guardar uno nuevo, eliminarlo por ID y buscarlo por ID. Utiliza Promises para gestionar las operaciones."
-   - Prompt 4: "Crea funciones para guardar, consultar y eliminar intercambios seleccionados en IndexedDB."
-   ========================================================================== */
+import { usuarios } from "./datos.js";
 
-// Importamos los datos iniciales.
-import { usuarios, intercambios } from "./datos.js";
+// =====================================
+// ALMACENAMIENTO DE USUARIOS (localStorage)
+// =====================================
 
-// Claves de almacenamiento.
-const claveUsuarios = "usuarios";
-const claveUsuarioConectado = "usuarioConectado";
+const CLAVE_USUARIO_ACTIVO = "tandemlink_usuario_activo";
 
-// Inicializamos localStorage e IndexedDB.
-export async function inicializarAlmacenamiento() {
+function obtenerUsuarios() {
+    const datosGuardados = localStorage.getItem("tandemlink_usuarios");
 
-    // Guardamos los usuarios iniciales solo la primera vez.
-    if (localStorage.getItem(claveUsuarios) === null) {
-        localStorage.setItem(claveUsuarios, JSON.stringify(usuarios));
+    if (datosGuardados) {
+        return JSON.parse(datosGuardados);
     }
 
-    // Abrimos la base de datos.
-    return await abrirBaseDatos();
+    localStorage.setItem("tandemlink_usuarios", JSON.stringify(usuarios));
+    return [...usuarios];
 }
 
-// Abrimos o creamos la base de datos.
-function abrirBaseDatos() {
+function guardarUsuarios(listaUsuarios) {
+    localStorage.setItem(
+        "tandemlink_usuarios",
+        JSON.stringify(listaUsuarios)
+    );
+}
 
-    return new Promise(function (resolve, reject) {
+export function consultarUsuarios() {
+    return obtenerUsuarios();
+}
 
-        const solicitud = indexedDB.open("TandemLink", 1);
+export function crearUsuario(usuario) {
+    const listaUsuarios = obtenerUsuarios();
+
+    const existe = listaUsuarios.some(
+        u => u.email.toLowerCase() === usuario.email.toLowerCase()
+    );
+
+    if (existe) return false;
+
+    usuario.id = Date.now();
+    listaUsuarios.push(usuario);
+    guardarUsuarios(listaUsuarios);
+
+    return true;
+}
+
+export function editarUsuario(usuarioActualizado) {
+    const listaUsuarios = obtenerUsuarios();
+
+    const existe = listaUsuarios.some(
+        u => u.email.toLowerCase() === usuarioActualizado.email.toLowerCase()
+            && u.id !== usuarioActualizado.id
+    );
+
+    if (existe) return false;
+
+    const indice = listaUsuarios.findIndex(
+        u => u.id === usuarioActualizado.id
+    );
+
+    if (indice === -1) return false;
+
+    listaUsuarios[indice] = {
+        ...listaUsuarios[indice],
+        ...usuarioActualizado
+    };
+
+    guardarUsuarios(listaUsuarios);
+
+    return true;
+}
+
+export function eliminarUsuario(id) {
+    const listaUsuarios = obtenerUsuarios();
+    const nuevaLista = listaUsuarios.filter(u => u.id !== id);
+
+    guardarUsuarios(nuevaLista);
+}
+
+export function obtenerUsuarioActivo() {
+    return localStorage.getItem(CLAVE_USUARIO_ACTIVO);
+}
+
+export function loguearUsuario(email, password) {
+    const listaUsuarios = obtenerUsuarios();
+
+    const usuario = listaUsuarios.find(
+        u => u.email.toLowerCase() === email.toLowerCase()
+            && u.password === password
+    );
+
+    if (!usuario) return false;
+
+    localStorage.setItem(CLAVE_USUARIO_ACTIVO, usuario.email);
+    return true;
+}
+
+export function cerrarSesion() {
+    localStorage.removeItem(CLAVE_USUARIO_ACTIVO);
+}
+
+
+// =====================================
+// BASE DE DATOS INDEXEDDB
+// =====================================
+
+const NOMBRE_BD = "TandemLinkDB";
+const VERSION_BD = 2;
+
+// Abrir la base de datos
+export function abrirBaseDatos() {
+    return new Promise((resolve, reject) => {
+        const solicitud = indexedDB.open(NOMBRE_BD, VERSION_BD);
 
         solicitud.onupgradeneeded = function (evento) {
+            const bd = evento.target.result;
 
-            const baseDatos = evento.target.result;
-
-            // Almacenamiento de intercambios.
-            if (!baseDatos.objectStoreNames.contains("intercambios")) {
-                const almacenIntercambios = baseDatos.createObjectStore(
-                    "intercambios",
-                    { keyPath: "id" }
-                );
-
-                // Cargamos los intercambios iniciales.
-                intercambios.forEach(function (intercambio) {
-                    almacenIntercambios.add(intercambio);
+            if (!bd.objectStoreNames.contains("intercambios")) {
+                bd.createObjectStore("intercambios", {
+                    keyPath: "id",
+                    autoIncrement: true
                 });
             }
 
-            // Almacenamiento de intercambios seleccionados.
-            if (!baseDatos.objectStoreNames.contains("seleccionados")) {
-                baseDatos.createObjectStore(
-                    "seleccionados",
-                    { keyPath: "id" }
-                );
+            if (!bd.objectStoreNames.contains("seleccionados")) {
+                bd.createObjectStore("seleccionados", {
+                    keyPath: "id"
+                });
             }
         };
 
@@ -68,186 +138,150 @@ function abrirBaseDatos() {
         };
     });
 }
-// Obtenemos todos los usuarios.
-export function obtenerUsuarios() {
-    return JSON.parse(localStorage.getItem(claveUsuarios)) || [];
-}
 
-// Guardamos un usuario nuevo.
-export function guardarUsuario(usuario) {
-    const usuariosGuardados = obtenerUsuarios();
+// Consultar todos los intercambios
+export async function consultarIntercambiosBD() {
+    const bd = await abrirBaseDatos();
 
-    usuariosGuardados.push(usuario);
-
-    localStorage.setItem(
-        claveUsuarios,
-        JSON.stringify(usuariosGuardados)
-    );
-}
-
-// Eliminamos un usuario por su ID.
-export function eliminarUsuario(id) {
-    const usuariosGuardados = obtenerUsuarios();
-
-    const usuariosActualizados = usuariosGuardados.filter(function (usuario) {
-        return usuario.id !== id;
-    });
-
-    localStorage.setItem(
-        claveUsuarios,
-        JSON.stringify(usuariosActualizados)
-    );
-}
-
-// Buscamos un usuario por su correo.
-export function obtenerUsuarioPorEmail(email) {
-    return obtenerUsuarios().find(function (usuario) {
-        return usuario.email.toLowerCase() === email.toLowerCase();
-    });
-}
-
-// Guardamos el correo del usuario conectado.
-export function guardarUsuarioConectado(email) {
-    localStorage.setItem(claveUsuarioConectado, email);
-}
-
-// Obtenemos el correo del usuario conectado.
-export function obtenerUsuarioConectado() {
-    return localStorage.getItem(claveUsuarioConectado);
-}
-
-// Cerramos la sesión.
-export function cerrarSesion() {
-    localStorage.removeItem(claveUsuarioConectado);
-}
-// Obtenemos todos los intercambios.
-export async function obtenerIntercambios() {
-    const baseDatos = await abrirBaseDatos();
-
-    return new Promise(function (resolve, reject) {
-        const transaccion = baseDatos.transaction("intercambios", "readonly");
+    return new Promise((resolve, reject) => {
+        const transaccion = bd.transaction("intercambios", "readonly");
         const almacen = transaccion.objectStore("intercambios");
         const solicitud = almacen.getAll();
 
-        solicitud.onsuccess = function () {
-            resolve(solicitud.result);
-        };
+        solicitud.onsuccess = () => resolve(solicitud.result);
+        solicitud.onerror = () => reject(solicitud.error);
 
-        solicitud.onerror = function () {
-            reject(solicitud.error);
-        };
+        transaccion.oncomplete = () => bd.close();
     });
 }
 
-// Guardamos un intercambio.
-export async function guardarIntercambio(intercambio) {
-    const baseDatos = await abrirBaseDatos();
+// Guardar un intercambio
+export async function guardarIntercambioBD(intercambio) {
+    const bd = await abrirBaseDatos();
 
-    return new Promise(function (resolve, reject) {
-        const transaccion = baseDatos.transaction("intercambios", "readwrite");
+    return new Promise((resolve, reject) => {
+        const transaccion = bd.transaction("intercambios", "readwrite");
         const almacen = transaccion.objectStore("intercambios");
-        const solicitud = almacen.put(intercambio);
 
-        solicitud.onsuccess = function () {
+        almacen.add(intercambio);
+
+        transaccion.oncomplete = () => {
+            bd.close();
             resolve();
         };
 
-        solicitud.onerror = function () {
-            reject(solicitud.error);
+        transaccion.onerror = () => {
+            bd.close();
+            reject(transaccion.error);
         };
     });
 }
 
-// Eliminamos un intercambio por su ID.
-export async function eliminarIntercambio(id) {
-    const baseDatos = await abrirBaseDatos();
+// Actualizar un intercambio existente
+export async function actualizarIntercambioBD(intercambio) {
+    const bd = await abrirBaseDatos();
 
-    return new Promise(function (resolve, reject) {
-        const transaccion = baseDatos.transaction("intercambios", "readwrite");
+    return new Promise((resolve, reject) => {
+        const transaccion = bd.transaction("intercambios", "readwrite");
         const almacen = transaccion.objectStore("intercambios");
-        const solicitud = almacen.delete(id);
 
-        solicitud.onsuccess = function () {
+        almacen.put(intercambio);
+
+        transaccion.oncomplete = () => {
+            bd.close();
             resolve();
         };
 
-        solicitud.onerror = function () {
-            reject(solicitud.error);
+        transaccion.onerror = () => {
+            bd.close();
+            reject(transaccion.error);
         };
     });
 }
 
-// Buscamos un intercambio por su ID.
-export async function obtenerIntercambioPorId(id) {
-    const baseDatos = await abrirBaseDatos();
+// Eliminar un intercambio
+export async function eliminarIntercambioBD(id) {
+    const bd = await abrirBaseDatos();
 
-    return new Promise(function (resolve, reject) {
-        const transaccion = baseDatos.transaction("intercambios", "readonly");
+    return new Promise((resolve, reject) => {
+        const transaccion = bd.transaction("intercambios", "readwrite");
         const almacen = transaccion.objectStore("intercambios");
-        const solicitud = almacen.get(id);
 
-        solicitud.onsuccess = function () {
-            resolve(solicitud.result);
+        almacen.delete(id);
+
+        transaccion.oncomplete = () => {
+            bd.close();
+            resolve();
         };
 
-        solicitud.onerror = function () {
-            reject(solicitud.error);
+        transaccion.onerror = () => {
+            bd.close();
+            reject(transaccion.error);
         };
     });
 }
-// Obtenemos los intercambios seleccionados.
-export async function obtenerSeleccionados() {
-    const baseDatos = await abrirBaseDatos();
 
-    return new Promise(function (resolve, reject) {
-        const transaccion = baseDatos.transaction("seleccionados", "readonly");
+
+// =====================================
+// INTERCAMBIOS SELECCIONADOS
+// =====================================
+
+// Consultar los intercambios seleccionados
+export async function consultarSeleccionados() {
+    const bd = await abrirBaseDatos();
+
+    return new Promise((resolve, reject) => {
+        const transaccion = bd.transaction("seleccionados", "readonly");
         const almacen = transaccion.objectStore("seleccionados");
         const solicitud = almacen.getAll();
 
-        solicitud.onsuccess = function () {
-            resolve(solicitud.result);
-        };
+        solicitud.onsuccess = () => resolve(solicitud.result);
+        solicitud.onerror = () => reject(solicitud.error);
 
-        solicitud.onerror = function () {
-            reject(solicitud.error);
-        };
+        transaccion.oncomplete = () => bd.close();
     });
 }
 
-// Guardamos un intercambio seleccionado.
+// Guardar un intercambio seleccionado
 export async function guardarSeleccionado(intercambio) {
-    const baseDatos = await abrirBaseDatos();
+    const bd = await abrirBaseDatos();
 
-    return new Promise(function (resolve, reject) {
-        const transaccion = baseDatos.transaction("seleccionados", "readwrite");
+    return new Promise((resolve, reject) => {
+        const transaccion = bd.transaction("seleccionados", "readwrite");
         const almacen = transaccion.objectStore("seleccionados");
-        const solicitud = almacen.put(intercambio);
 
-        solicitud.onsuccess = function () {
+        almacen.put(intercambio);
+
+        transaccion.oncomplete = () => {
+            bd.close();
             resolve();
         };
 
-        solicitud.onerror = function () {
-            reject(solicitud.error);
+        transaccion.onerror = () => {
+            bd.close();
+            reject(transaccion.error);
         };
     });
 }
 
-// Eliminamos un intercambio seleccionado.
+// Eliminar un intercambio de la selección
 export async function eliminarSeleccionado(id) {
-    const baseDatos = await abrirBaseDatos();
+    const bd = await abrirBaseDatos();
 
-    return new Promise(function (resolve, reject) {
-        const transaccion = baseDatos.transaction("seleccionados", "readwrite");
+    return new Promise((resolve, reject) => {
+        const transaccion = bd.transaction("seleccionados", "readwrite");
         const almacen = transaccion.objectStore("seleccionados");
-        const solicitud = almacen.delete(id);
 
-        solicitud.onsuccess = function () {
+        almacen.delete(id);
+
+        transaccion.oncomplete = () => {
+            bd.close();
             resolve();
         };
 
-        solicitud.onerror = function () {
-            reject(solicitud.error);
+        transaccion.onerror = () => {
+            bd.close();
+            reject(transaccion.error);
         };
     });
 }

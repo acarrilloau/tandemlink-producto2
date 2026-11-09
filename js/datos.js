@@ -1,20 +1,8 @@
-/* ==========================================================================
-   DOCUMENTACIÓN IA GENERATIVA
-   - IA utilizada: Gemini
-   - Prompt 1: "Crea un array exportable de usuarios con identificador, nombre, email y contraseña."
-   - Prompt 2: "Define un segundo array exportable de intercambios vinculado a los usuarios mediante un ID."
-   - Prompt 3: "Añade propiedades de tipo, idiomas ofrecidos y buscados en cada objeto de intercambio."
-   - Prompt 4: "Incluye datos de modalidad y fecha de creación con formato de texto estándar."
-   ========================================================================== */
-
-
-
 /*
-    FICHERO DE DATOS COMPARTIDOS
-    Proyecto: TandemLink
+    DATOS INICIALES DE TANDEMLINK
 */
 
-// Array de usuarios iniciales
+// Usuarios iniciales
 export const usuarios = [
     {
         id: 1,
@@ -36,7 +24,7 @@ export const usuarios = [
     }
 ];
 
-// Array de intercambios iniciales
+// Intercambios iniciales
 export const intercambios = [
     {
         id: 1,
@@ -45,7 +33,7 @@ export const intercambios = [
         idiomaOfrecido: "Español",
         idiomaBuscado: "Inglés",
         modalidad: "Presencial",
-        descripcion: "Quiero practicar a hablar en inglés.",
+        descripcion: "Quiero practicar inglés y ayudar a otras personas con el español.",
         fechaCreacion: "2026-10-10"
     },
     {
@@ -65,7 +53,7 @@ export const intercambios = [
         idiomaOfrecido: "Francés",
         idiomaBuscado: "Español",
         modalidad: "Online",
-        descripcion: "Puedo ayudar con francés a cambio de español.",
+        descripcion: "Puedo ayudar con francés a cambio de practicar español.",
         fechaCreacion: "2026-10-17"
     }
 ];

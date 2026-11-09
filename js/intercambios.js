@@ -1,216 +1,360 @@
-/* ==========================================================================
-   DOCUMENTACIÓN IA GENERATIVA
-   - IA utilizada: Gemini
-   - Prompt 1: "Crea una función para recorrer un array de usuarios y rellenar un elemento <select> con opciones."
-   - Prompt 2: "Genera un bucle para construir dinámicamente tarjetas HTML y asociarles un botón de eliminación."
-   - Prompt 3: "Añade la lógica de validación con .some() y cálculo de ID máximo para registrar un nuevo elemento vía formulario."
-   - Prompt 4: "Implementa el borrado seguro de un elemento de la lista usando delegación de eventos y un confirm nativo."
-   ========================================================================== */
 
+import { intercambios as datosIniciales } from "./datos.js";
 
+import {
+    obtenerUsuarioActivo,
+    consultarUsuarios,
+    consultarIntercambiosBD,
+    guardarIntercambioBD,
+    actualizarIntercambioBD,
+    eliminarIntercambioBD
+} from "./almacenaje.js";
 
-// Importamos los datos de usuarios e intercambios.
-import { usuarios, intercambios } from "./datos.js";
-
-// Elementos del formulario.
+// Elementos de la página
 const formulario = document.getElementById("formularioIntercambio");
-const campoTipo = document.getElementById("tipoIntercambio");
-const campoUsuario = document.getElementById("usuarioIntercambio");
-const campoIdiomaOfrecido = document.getElementById("idiomaOfrecido");
-const campoIdiomaBuscado = document.getElementById("idiomaBuscado");
-const campoModalidad = document.getElementById("modalidadIntercambio");
-const campoDescripcion = document.getElementById("descripcionIntercambio");
+const tabla = document.getElementById("tablaIntercambios");
 const mensaje = document.getElementById("mensajeIntercambio");
+const canvas = document.getElementById("graficoIntercambios");
 
-// Elementos del listado.
-const listaIntercambios = document.getElementById("listaIntercambios");
-const mensajeListaVacia = document.getElementById("mensajeListaVacia");
+const tituloFormulario = document.getElementById("tituloFormularioIntercambio");
+const botonGuardar = document.getElementById("botonGuardarIntercambio");
+const botonCancelar = document.getElementById("cancelarEdicionIntercambio");
 
-// Mostramos mensajes de éxito o error.
-function mostrarMensaje(texto, tipo) {
-    mensaje.textContent = texto;
-    mensaje.className = `alert alert-${tipo} mt-3`;
+// Intercambio que estamos editando
+let intercambioEnEdicion = null;
+
+// Obtener el usuario que tiene la sesión iniciada
+function obtenerUsuarioSesion() {
+    const emailActivo = obtenerUsuarioActivo();
+
+    if (!emailActivo) return null;
+
+    return consultarUsuarios().find(
+        usuario => usuario.email.toLowerCase() === emailActivo.toLowerCase()
+    ) || null;
 }
 
-// Cargamos los usuarios en el selector.
-function cargarUsuarios() {
-    usuarios.forEach(function (usuario) {
-        const opcion = document.createElement("option");
+// Comprobar si el intercambio pertenece al usuario activo
+function esPropietario(intercambio) {
+    const usuario = obtenerUsuarioSesion();
 
-        opcion.value = usuario.id;
-        opcion.textContent = usuario.nombre;
-
-        campoUsuario.appendChild(opcion);
-    });
+    return usuario !== null && usuario.id === intercambio.usuarioId;
 }
 
-// Mostramos todos los intercambios.
-function mostrarIntercambios() {
-    listaIntercambios.innerHTML = "";
+// Cargar los datos iniciales si IndexedDB está vacío
+async function cargarDatosIniciales() {
+    const lista = await consultarIntercambiosBD();
 
-    intercambios.forEach(function (intercambio) {
-        const usuario = usuarios.find(function (persona) {
-            return persona.id === intercambio.usuarioId;
+    if (lista.length === 0) {
+        for (const intercambio of datosIniciales) {
+            await guardarIntercambioBD(intercambio);
+        }
+    }
+}
+
+// Mostrar los intercambios en la tabla
+async function mostrarIntercambios() {
+    if (!tabla) return;
+
+    const lista = await consultarIntercambiosBD();
+    const usuarios = consultarUsuarios();
+
+    tabla.innerHTML = "";
+
+    if (lista.length === 0) {
+        const fila = document.createElement("tr");
+        const celda = document.createElement("td");
+
+        celda.colSpan = 7;
+        celda.textContent = "Todavía no hay intercambios publicados.";
+
+        fila.appendChild(celda);
+        tabla.appendChild(fila);
+    }
+
+    lista.forEach(intercambio => {
+        const usuario = usuarios.find(
+            u => u.id === intercambio.usuarioId
+        );
+
+        const fila = document.createElement("tr");
+
+        const valores = [
+            intercambio.tipo,
+            usuario ? usuario.email : "No disponible",
+            `${intercambio.idiomaOfrecido} ↔ ${intercambio.idiomaBuscado}`,
+            intercambio.modalidad,
+            intercambio.descripcion,
+            intercambio.fechaCreacion
+        ];
+
+        valores.forEach(valor => {
+            const celda = document.createElement("td");
+            celda.textContent = valor;
+            fila.appendChild(celda);
         });
 
-        const esOferta = intercambio.tipo === "oferta";
-        const color = esOferta ? "success" : "warning";
-        const tipoTexto = esOferta ? "Oferta" : "Petición";
+        const celdaAcciones = document.createElement("td");
 
-        const tarjeta = document.createElement("div");
-        tarjeta.className = "col-12 col-md-6 col-lg-4";
+        // Solo el propietario puede modificar o eliminar
+        if (esPropietario(intercambio)) {
 
-        const articulo = document.createElement("article");
-        articulo.className = `card h-100 border-${color} shadow-sm`;
+            // Botón editar
+            const botonEditar = document.createElement("button");
+            botonEditar.textContent = "Editar";
+            botonEditar.className = "btn btn-warning btn-sm me-2";
 
-        const cuerpo = document.createElement("div");
-        cuerpo.className = "card-body";
+            botonEditar.addEventListener("click", function () {
 
-        // Tipo de intercambio.
-        const etiqueta = document.createElement("span");
-        etiqueta.className = `badge text-bg-${color} mb-3`;
-        etiqueta.textContent = tipoTexto;
-        cuerpo.appendChild(etiqueta);
+                if (!esPropietario(intercambio)) {
+                    mensaje.textContent = "Solo puedes editar tus propios intercambios.";
+                    mensaje.className = "text-danger mt-3";
+                    return;
+                }
 
-        // Idiomas.
-        const titulo = document.createElement("h3");
-        titulo.className = "card-title h5";
-        titulo.textContent =
-            `${intercambio.idiomaOfrecido} por ${intercambio.idiomaBuscado}`;
-        cuerpo.appendChild(titulo);
+                intercambioEnEdicion = intercambio;
 
-        // Descripción.
-        const descripcion = document.createElement("p");
-        descripcion.className = "card-text";
-        descripcion.textContent = intercambio.descripcion;
-        cuerpo.appendChild(descripcion);
+                document.getElementById("tipo").value = intercambio.tipo;
+                document.getElementById("idiomaOfrecido").value = intercambio.idiomaOfrecido;
+                document.getElementById("idiomaBuscado").value = intercambio.idiomaBuscado;
+                document.getElementById("modalidad").value = intercambio.modalidad;
+                document.getElementById("descripcion").value = intercambio.descripcion;
 
-        // Modalidad.
-        const modalidad = document.createElement("p");
-        modalidad.className = "small mb-2";
-        modalidad.textContent = `Modalidad: ${intercambio.modalidad}`;
-        cuerpo.appendChild(modalidad);
+                tituloFormulario.textContent = "Editar intercambio";
+                botonGuardar.textContent = "Guardar cambios";
+                botonCancelar.hidden = false;
 
-        // Usuario.
-        const nombreUsuario = document.createElement("p");
-        nombreUsuario.className = "small mb-2";
-        nombreUsuario.textContent =
-            `Usuario: ${usuario ? usuario.nombre : "Usuario desconocido"}`;
-        cuerpo.appendChild(nombreUsuario);
+                mensaje.textContent = "Modifica los datos del intercambio.";
+                mensaje.className = "text-dark mt-3";
 
-        // Fecha de creación.
-        const fecha = document.createElement("p");
-        fecha.className = "small text-secondary mb-3";
+                formulario.scrollIntoView({ behavior: "smooth" });
+            });
 
-        if (intercambio.fechaCreacion) {
-            fecha.textContent =
-                "Fecha de publicación: " +
-                new Date(
-                    intercambio.fechaCreacion + "T00:00:00"
-                ).toLocaleDateString("es-ES");
+            // Botón eliminar
+            const botonEliminar = document.createElement("button");
+            botonEliminar.textContent = "Eliminar";
+            botonEliminar.className = "btn btn-danger btn-sm";
+
+            botonEliminar.addEventListener("click", async function () {
+
+                if (!esPropietario(intercambio)) {
+                    mensaje.textContent = "Solo puedes eliminar tus propios intercambios.";
+                    mensaje.className = "text-danger mt-3";
+                    return;
+                }
+
+                if (confirm("¿Quieres eliminar este intercambio?")) {
+                    await eliminarIntercambioBD(intercambio.id);
+
+                    if (
+                        intercambioEnEdicion &&
+                        intercambioEnEdicion.id === intercambio.id
+                    ) {
+                        cancelarEdicion();
+                    }
+
+                    await actualizarPagina();
+                }
+            });
+
+            celdaAcciones.appendChild(botonEditar);
+            celdaAcciones.appendChild(botonEliminar);
+
         } else {
-            fecha.textContent = "Fecha de publicación no disponible";
+            celdaAcciones.textContent = "Sin permisos";
         }
 
-        cuerpo.appendChild(fecha);
-
-        // Botón para eliminar.
-        const botonEliminar = document.createElement("button");
-        botonEliminar.type = "button";
-        botonEliminar.className = "btn btn-outline-danger btn-sm";
-        botonEliminar.textContent = "Eliminar";
-        botonEliminar.dataset.id = intercambio.id;
-
-        cuerpo.appendChild(botonEliminar);
-
-        articulo.appendChild(cuerpo);
-        tarjeta.appendChild(articulo);
-        listaIntercambios.appendChild(tarjeta);
+        fila.appendChild(celdaAcciones);
+        tabla.appendChild(fila);
     });
 
-    mensajeListaVacia.textContent = intercambios.length === 0
-        ? "Todavía no hay intercambios publicados."
-        : "";
+    dibujarGrafico(lista);
 }
 
-// Registramos un nuevo intercambio.
-formulario.addEventListener("submit", function (evento) {
-    evento.preventDefault();
+// Volver al modo de publicación
+function cancelarEdicion() {
+    intercambioEnEdicion = null;
 
-    const tipo = campoTipo.value;
-    const usuarioId = Number(campoUsuario.value);
-    const idiomaOfrecido = campoIdiomaOfrecido.value.trim();
-    const idiomaBuscado = campoIdiomaBuscado.value.trim();
-    const modalidad = campoModalidad.value;
-    const descripcionTexto = campoDescripcion.value.trim();
-
-    // Comprobamos que el usuario seleccionado existe.
-    const usuarioExiste = usuarios.some(function (usuario) {
-        return usuario.id === usuarioId;
-    });
-
-    if (!usuarioExiste) {
-        mostrarMensaje("Selecciona un usuario válido.", "danger");
-        return;
-    }
-
-    // Calculamos un identificador que no esté utilizado.
-    const nuevoId = intercambios.length > 0
-        ? Math.max(...intercambios.map(function (intercambio) {
-            return intercambio.id;
-        })) + 1
-        : 1;
-
-    // Añadimos el intercambio al array compartido.
-    intercambios.push({
-        id: nuevoId,
-        tipo: tipo,
-        usuarioId: usuarioId,
-        idiomaOfrecido: idiomaOfrecido,
-        idiomaBuscado: idiomaBuscado,
-        modalidad: modalidad,
-        descripcion: descripcionTexto,
-        fechaCreacion: new Date().toLocaleDateString("en-CA")
-    });
-
-    mostrarIntercambios();
     formulario.reset();
 
-    mostrarMensaje("Intercambio publicado correctamente.", "success");
-});
+    tituloFormulario.textContent = "Publicar un intercambio";
+    botonGuardar.textContent = "Publicar intercambio";
+    botonCancelar.hidden = true;
 
-// Gestionamos los clics en los botones de eliminar.
-listaIntercambios.addEventListener("click", function (evento) {
-    const boton = evento.target.closest("button[data-id]");
+    mensaje.textContent = "";
+}
 
-    if (!boton) {
-        return;
-    }
+// Publicar o editar un intercambio
+if (formulario) {
+    formulario.addEventListener("submit", async function (evento) {
+        evento.preventDefault();
 
-    const id = Number(boton.dataset.id);
+        const usuario = obtenerUsuarioSesion();
 
-    const indice = intercambios.findIndex(function (intercambio) {
-        return intercambio.id === id;
+        if (!usuario) {
+            mensaje.textContent = "Debes iniciar sesión para publicar un intercambio.";
+            mensaje.className = "text-danger mt-3";
+            return;
+        }
+
+        const datosIntercambio = {
+            tipo: document.getElementById("tipo").value,
+            idiomaOfrecido: document.getElementById("idiomaOfrecido").value.trim(),
+            idiomaBuscado: document.getElementById("idiomaBuscado").value.trim(),
+            modalidad: document.getElementById("modalidad").value,
+            descripcion: document.getElementById("descripcion").value.trim()
+        };
+
+        try {
+            if (intercambioEnEdicion !== null) {
+
+                // Comprobar nuevamente que el usuario es el propietario
+                if (!esPropietario(intercambioEnEdicion)) {
+                    mensaje.textContent = "No tienes permiso para editar este intercambio.";
+                    mensaje.className = "text-danger mt-3";
+                    cancelarEdicion();
+                    return;
+                }
+
+                const intercambioActualizado = {
+                    ...intercambioEnEdicion,
+                    ...datosIntercambio
+                };
+
+                await actualizarIntercambioBD(intercambioActualizado);
+
+                cancelarEdicion();
+
+                mensaje.textContent = "¡Intercambio actualizado correctamente!";
+                mensaje.className = "text-success mt-3";
+
+            } else {
+                const nuevoIntercambio = {
+                    ...datosIntercambio,
+                    usuarioId: usuario.id,
+                    fechaCreacion: new Date().toISOString().split("T")[0]
+                };
+
+                await guardarIntercambioBD(nuevoIntercambio);
+
+                formulario.reset();
+
+                mensaje.textContent = "¡Intercambio publicado correctamente!";
+                mensaje.className = "text-success mt-3";
+            }
+
+            await actualizarPagina();
+
+        } catch (error) {
+            mensaje.textContent = "No se ha podido guardar el intercambio.";
+            mensaje.className = "text-danger mt-3";
+            console.error(error);
+        }
     });
+}
 
-    if (indice === -1) {
-        return;
+// Cancelar edición
+if (botonCancelar) {
+    botonCancelar.addEventListener("click", cancelarEdicion);
+}
+
+// Dibujar el gráfico circular
+function dibujarGrafico(lista) {
+    if (!canvas) return;
+
+    const contexto = canvas.getContext("2d");
+
+    const ofertas = lista.filter(
+        i => i.tipo === "oferta"
+    ).length;
+
+    const peticiones = lista.filter(
+        i => i.tipo === "petición"
+    ).length;
+
+    const total = ofertas + peticiones;
+
+    contexto.clearRect(0, 0, canvas.width, canvas.height);
+
+    const centroX = 170;
+    const centroY = 170;
+    const radio = 125;
+
+    if (total === 0) {
+        contexto.beginPath();
+        contexto.arc(centroX, centroY, radio, 0, Math.PI * 2);
+        contexto.fillStyle = "#dce2e9";
+        contexto.fill();
+    } else {
+        let anguloInicial = -Math.PI / 2;
+
+        const datos = [
+            { cantidad: ofertas, color: "#198754" },
+            { cantidad: peticiones, color: "#ffc107" }
+        ];
+
+        datos.forEach(dato => {
+            if (dato.cantidad === 0) return;
+
+            const angulo = (dato.cantidad / total) * Math.PI * 2;
+
+            contexto.beginPath();
+            contexto.moveTo(centroX, centroY);
+            contexto.arc(
+                centroX,
+                centroY,
+                radio,
+                anguloInicial,
+                anguloInicial + angulo
+            );
+            contexto.closePath();
+
+            contexto.fillStyle = dato.color;
+            contexto.fill();
+
+            anguloInicial += angulo;
+        });
     }
 
-    const confirmar = window.confirm(
-        "¿Seguro que quieres eliminar este intercambio?"
-    );
+    // Leyenda del gráfico
+    contexto.font = "20px Arial";
+    contexto.textAlign = "left";
 
-    if (!confirmar) {
-        return;
+    contexto.fillStyle = "#198754";
+    contexto.fillRect(355, 105, 22, 22);
+
+    contexto.fillStyle = "#20364d";
+    contexto.fillText(`Ofertas: ${ofertas}`, 390, 124);
+
+    contexto.fillStyle = "#ffc107";
+    contexto.fillRect(355, 165, 22, 22);
+
+    contexto.fillStyle = "#20364d";
+    contexto.fillText(`Peticiones: ${peticiones}`, 390, 184);
+
+    contexto.font = "bold 19px Arial";
+    contexto.fillText(`Total: ${total}`, 355, 245);
+}
+
+// Actualizar tabla y gráfico
+async function actualizarPagina() {
+    await mostrarIntercambios();
+}
+
+// Inicializar la página
+async function iniciarPagina() {
+    try {
+        await cargarDatosIniciales();
+        await actualizarPagina();
+    } catch (error) {
+        console.error("Error al iniciar los intercambios:", error);
+
+        if (mensaje) {
+            mensaje.textContent = "No se han podido cargar los intercambios.";
+            mensaje.className = "text-danger mt-3";
+        }
     }
+}
 
-    intercambios.splice(indice, 1);
+iniciarPagina();
 
-    mostrarIntercambios();
-    mostrarMensaje("Intercambio eliminado correctamente.", "success");
-});
-
-// Inicializamos la página.
-cargarUsuarios();
-mostrarIntercambios();
