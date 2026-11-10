@@ -34,11 +34,16 @@ async function mostrarIntercambios() {
             })
             .slice()
             .sort(function (a, b) {
-                if (ordenFecha.value === "recientes") {
-                    return b.fechaCreacion.localeCompare(a.fechaCreacion);
-                }
-                return a.fechaCreacion.localeCompare(b.fechaCreacion);
-            })
+            const fechaA = a.fechaCreacion || a.fecha || "";
+            const fechaB = b.fechaCreacion || b.fecha || "";
+
+            // Comprobamos explícitamente si el selector pide los más antiguos
+            if (ordenFecha.value === "antiguos" || ordenFecha.value === "mas-antiguos") {
+                return fechaA.localeCompare(fechaB); // De más antiguo a más nuevo
+            } else {
+                return fechaB.localeCompare(fechaA); // De más nuevo a más antiguo (recientes)
+            }
+        })
             .forEach(function (intercambio) {
 
                 // Buscamos al usuario que ha publicado el intercambio.
